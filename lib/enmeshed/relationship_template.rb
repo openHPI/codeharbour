@@ -4,7 +4,8 @@ module Enmeshed
   class RelationshipTemplate < Object
     # The app does not allow users to scan expired templates.
     # However, previously scanned and then expired templates can still be submitted,
-    # resulting in the app silently doing nothing. CodeHarbor would still accept Relationships for expired templates if sent by the app.
+    # resulting in the app silently doing nothing. CodeHarbor would still accept Relationships for expired templates if
+    # sent by the app.
     # To minimize the risk of a template expiring before submission, we set the validity to 12 hours.
     VALIDITY_PERIOD = 12.hours
     # The display name of the service as shown in the enmeshed app.
@@ -23,20 +24,6 @@ module Enmeshed
       @truncated_reference = truncated_reference
       @nbp_uid = nbp_uid
       @expires_at = expires_at
-    end
-
-    def self.parse(content)
-      super
-      attributes = {
-        truncated_reference: content[:truncatedReference],
-        expires_at: Time.zone.parse(content[:expiresAt]),
-        nbp_uid: content.dig(:content, :metadata, :nbp_uid),
-      }
-      new(**attributes)
-    end
-
-    def self.fetch(truncated_reference)
-      Connector.fetch_existing_relationship_template(truncated_reference) || new(truncated_reference:)
     end
 
     def create!
@@ -74,19 +61,6 @@ module Enmeshed
       [expires_at - Time.zone.now, 0].max
     end
 
-    def self.create!(nbp_uid:)
-      new(nbp_uid:).create!
-    end
-
-    def self.display_name_attribute
-      @display_name_attribute ||= Attribute::Identity.new(type: 'DisplayName', value: DISPLAY_NAME)
-    end
-
-    def self.allow_certificate_request
-      # i18n-tasks-use t('users.nbp_wallet.enmeshed.AllowCertificateRequest')
-      @allow_certificate_request ||= Attribute::Relationship.new(type: 'ProprietaryBoolean', key: 'AllowCertificateRequest', value: true)
-    end
-
     def to_json(*)
       {
         maxNumberOfAllocations: 1,
@@ -100,6 +74,36 @@ module Enmeshed
           },
         },
       }.to_json(*)
+    end
+
+    class << self
+      def parse(content)
+        super
+        attributes = {
+          truncated_reference: content[:truncatedReference],
+          expires_at: Time.zone.parse(content[:expiresAt]),
+          nbp_uid: content.dig(:content, :metadata, :nbp_uid),
+        }
+        new(**attributes)
+      end
+
+      def fetch(truncated_reference)
+        Connector.fetch_existing_relationship_template(truncated_reference) || new(truncated_reference:)
+      end
+
+      def create!(nbp_uid:)
+        new(nbp_uid:).create!
+      end
+
+      def display_name_attribute
+        @display_name_attribute ||= Attribute::Identity.new(type: 'DisplayName', value: DISPLAY_NAME)
+      end
+
+      def allow_certificate_request
+        # i18n-tasks-use t('account.nbp_wallet.enmeshed.AllowCertificateRequest')
+        @allow_certificate_request ||= Attribute::Relationship.new(type: 'ProprietaryBoolean',
+          key: 'AllowCertificateRequest', value: true)
+      end
     end
 
     private

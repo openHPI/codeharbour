@@ -19,7 +19,7 @@ module Enmeshed
       super
 
       attribute_type = content.dig(:content, :@type)
-      desired_klass = descendants&.find {|descendant| descendant.klass == attribute_type }
+      desired_klass = descendants.find {|descendant| descendant.klass == attribute_type }
       raise ConnectorError.new("Unknown attribute type: #{attribute_type}") unless desired_klass
 
       attributes = {

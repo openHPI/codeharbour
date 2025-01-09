@@ -7,7 +7,7 @@ module Users
     skip_after_action :verify_authorized
 
     def connect
-      if Enmeshed::Relationship.pending_for_nbp_uid(@provider_uid).present?
+      if Enmeshed::Relationship.pending_for(@provider_uid).present?
         redirect_to nbp_wallet_finalize_users_path and return
       end
 
@@ -24,7 +24,7 @@ module Users
     end
 
     def relationship_status
-      if Enmeshed::Relationship.pending_for_nbp_uid(@provider_uid).present?
+      if Enmeshed::Relationship.pending_for(@provider_uid).present?
         render json: {status: :ready}
       else
         render json: {status: :waiting}
@@ -36,7 +36,7 @@ module Users
     end
 
     def finalize
-      relationship = Enmeshed::Relationship.pending_for_nbp_uid(@provider_uid)
+      relationship = Enmeshed::Relationship.pending_for(@provider_uid)
       abort_and_refresh(relationship) and return if relationship.blank?
 
       accept_and_create_user(relationship)
