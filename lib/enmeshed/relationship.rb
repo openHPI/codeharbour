@@ -13,23 +13,6 @@ module Enmeshed
       @relationship_changes = changes
     end
 
-    def self.parse(content)
-      super
-      attributes = {
-        json: content,
-        template: RelationshipTemplate.parse(content[:template]),
-        changes: content[:changes],
-      }
-      new(**attributes)
-    end
-
-    def self.pending_for_nbp_uid(nbp_uid)
-      relationships = Connector.pending_relationships
-
-      # We want to call valid? for all relationships because it internally rejects invalid relationships
-      relationships.select(&:valid?).find {|rel| rel.nbp_uid == nbp_uid }
-    end
-
     def peer
       @json[:peer]
     end
@@ -39,7 +22,8 @@ module Enmeshed
     end
 
     def valid?
-      # templates can only be scanned in their validity period but can theoretically be submitted infinitely late so we sanitize here
+      # Templates can only be scanned in their validity period but can theoretically be submitted infinitely late.
+      # Thus, we sanitize here.
       if expires_at < (RelationshipTemplate::VALIDITY_PERIOD * 2).ago
         reject!
         false
@@ -53,7 +37,7 @@ module Enmeshed
     end
 
     def accept!
-      raise ConnectorError('Relationship should exactly one RelationshipChange') if relationship_changes.size != 1
+      raise ConnectorError('Relationship should have exactly one RelationshipChange') if relationship_changes.size != 1
 
       Rails.logger.debug do
         "Enmeshed::ConnectorApi accepting Relationship for template #{truncated_reference}"
@@ -69,6 +53,25 @@ module Enmeshed
 
       @json[:changes].each do |change|
         Connector.respond_to_rel_change(id, change[:id], 'Reject')
+      end
+    end
+
+    class << self
+      def parse(content)
+        super
+        attributes = {
+          json: content,
+          template: RelationshipTemplate.parse(content[:template]),
+          changes: content[:changes],
+        }
+        new(**attributes)
+      end
+
+      def pending_for(nbp_uid)
+        relationships = Connector.pending_relationships
+
+        # We want to call valid? for all relationships, because it internally rejects invalid relationships
+        relationships.select(&:valid?).find {|relationship| relationship.nbp_uid == nbp_uid }
       end
     end
 

@@ -58,13 +58,13 @@ RSpec.describe Enmeshed::Connector do
     end
   end
 
-  describe '.init_conn' do
+  describe '.connection' do
     before do
       allow(User).to receive(:omniauth_providers).and_return([:nbp])
     end
 
     it 'returns a Faraday connection' do
-      expect(connector.send(:init_conn)).to be_a(Faraday::Connection)
+      expect(connector.send(:connection)).to be_a(Faraday::Connection)
     end
 
     context 'when the config is invalid' do
@@ -73,7 +73,7 @@ RSpec.describe Enmeshed::Connector do
       end
 
       it 'raises an error' do
-        expect { connector.send(:init_conn) }.to raise_error(Enmeshed::ConnectorError)
+        expect { connector.send(:connection) }.to raise_error(Enmeshed::ConnectorError)
       end
     end
   end
