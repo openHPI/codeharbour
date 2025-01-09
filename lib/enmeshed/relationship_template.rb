@@ -29,7 +29,7 @@ module Enmeshed
       super
       attributes = {
         truncated_reference: content[:truncatedReference],
-        expires_at: DateTime.parse(content[:expiresAt]),
+        expires_at: Time.zone.parse(content[:expiresAt]),
         nbp_uid: content.dig(:content, :metadata, :nbp_uid),
       }
       new(**attributes)
