@@ -96,6 +96,8 @@ module Enmeshed
         enmeshed_user_attributes[attr_type] = attr_value
       end
 
+      check_for_required_attributes! enmeshed_user_attributes
+
       {
         email: enmeshed_user_attributes['EMailAddress'],
         first_name: enmeshed_user_attributes['GivenName'],
@@ -104,6 +106,15 @@ module Enmeshed
       }
     rescue NoMethodError
       raise ConnectorError.new("Could not parse userdata in relationship change: #{relationship_changes.first}")
+    end
+
+    def check_for_required_attributes!(enmeshed_user_attributes)
+      blank_attributes = enmeshed_user_attributes.select {|_, v| v.blank? }.keys
+      missing_attributes = Enmeshed::RelationshipTemplate::REQUIRED_ATTRIBUTES - enmeshed_user_attributes.keys
+
+      if blank_attributes.any? || missing_attributes.any?
+        raise ConnectorError.new("#{(blank_attributes << missing_attributes).flatten.join(', ')} must not be empty")
+      end
     end
 
     def parse_status_group(affiliation_role)
