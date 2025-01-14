@@ -112,14 +112,12 @@ module Enmeshed
       # @return [Faraday::Connection] The connection to the enmeshed connector.
       # @raise [ConnectorError] If the connector is not configured as expected.
       def connection
-        return @connection if @connection.present?
-
         unless User.omniauth_providers.include?(:nbp) && CONNECTOR_URL.present? && API_KEY.present? \
           && RelationshipTemplate::DISPLAY_NAME.present?
           raise ConnectorError.new('NBP provider or enmeshed connector not configured as expected')
         end
 
-        @connection = Faraday.new(CONNECTOR_URL, headers:)
+        Faraday.new(CONNECTOR_URL, headers:, request: {open_timeout: 1, read_timeout: 5, write_timeout: 5})
       end
 
       # @return [Hash] The headers for the enmeshed connection.
