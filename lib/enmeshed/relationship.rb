@@ -37,7 +37,9 @@ module Enmeshed
     end
 
     def accept!
-      raise ConnectorError('Relationship should have exactly one RelationshipChange') if relationship_changes.size != 1
+      if relationship_changes.size != 1
+        raise ConnectorError.new('Relationship should have exactly one RelationshipChange')
+      end
 
       Rails.logger.debug do
         "Enmeshed::ConnectorApi accepting Relationship for template #{truncated_reference}"
@@ -81,7 +83,9 @@ module Enmeshed
       # Since the RelationshipTemplate has a `maxNumberOfAllocations` attribute set to 1,
       # you cannot request multiple Relationships with the same template.
       # Further, RelationshipChanges should not be possible before accepting the Relationship.
-      raise ConnectorError('Relationship should have exactly one RelationshipChange') if relationship_changes.size != 1
+      if relationship_changes.size != 1
+        raise ConnectorError.new('Relationship should have exactly one RelationshipChange')
+      end
 
       change_response_items = relationship_changes.first.dig(:request, :content, :response, :items)
 
