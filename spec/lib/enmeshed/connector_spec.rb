@@ -70,8 +70,6 @@ RSpec.describe Enmeshed::Connector do
 
     context 'when the config is invalid' do
       before do
-        # Un-memoize the connection to re-read the config
-        connector.instance_variable_set(:@connection, nil)
         allow(User).to receive(:omniauth_providers).and_return([])
       end
 
