@@ -82,6 +82,8 @@ class ApplicationController < ActionController::Base
         if request.url == request.referer || request.referer&.match?(new_user_session_path)
           redirect_to :root, alert: message
         elsif current_user.nil? && status == :unauthorized
+          return redirect_to :root, alert: message if request.path.start_with?('/users/nbp_wallet')
+
           store_location_for(:user, request.fullpath) if current_user.nil?
           redirect_to new_user_session_path, alert: t('common.errors.not_signed_in')
         else
