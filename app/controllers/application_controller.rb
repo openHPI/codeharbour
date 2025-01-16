@@ -78,8 +78,7 @@ class ApplicationController < ActionController::Base
     set_sentry_context
     respond_to do |format|
       format.any do
-        # Prevent redirect loop
-        if request.url == request.referer || request.referer&.match?(new_user_session_path)
+        if redirect_loop? || unauthorized_nbp_request?(status)
           redirect_to :root, alert: message
         elsif current_user.nil? && status == :unauthorized
           store_location_for(:user, request.fullpath) if current_user.nil?
@@ -90,6 +89,14 @@ class ApplicationController < ActionController::Base
       end
       format.json { render json: {error: message}, status: }
     end
+  end
+
+  def redirect_loop?
+    request.url == request.referer || request.referer&.match?(new_user_session_path)
+  end
+
+  def unauthorized_nbp_request?(status)
+    current_user.nil? && status == :unauthorized && instance_of?(Users::NbpWalletController)
   end
 
   def mnemosyne_trace
