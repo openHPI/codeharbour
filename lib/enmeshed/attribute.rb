@@ -36,6 +36,17 @@ module Enmeshed
       default_attributes.deep_merge(additional_attributes)
     end
 
+    def to_json(*)
+      {
+        content: {
+          value: {
+            '@type': @type,
+            value: @value,
+          },
+        },
+      }.to_json(*)
+    end
+
     def id
       @id ||= persistent_id
     end
