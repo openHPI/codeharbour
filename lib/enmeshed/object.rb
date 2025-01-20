@@ -18,8 +18,14 @@ module Enmeshed
       end
 
       def validate!(instance)
-        raise ConnectorError.new("Invalid #{klass} schema") unless schema.valid?(instance)
+        unless schema.valid?(instance)
+          error = schema.validate(instance).first.fetch('error')
+          Rails.logger.debug(error)
+          raise ConnectorError.new("Invalid #{klass} schema: #{error}") unless KNOWN_API_ISSUES.include? error
+        end
       end
+
+      KNOWN_API_ISSUES = ['value at `/auditLog/0/createdBy` does not match format: date-time'].freeze
     end
   end
 end

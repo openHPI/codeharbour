@@ -3,7 +3,7 @@
     {
       "id": "RLT_example_id_ABCXY",
       "isOwn": true,
-      "createdBy": "id1JttmYYvjT6wojkJ9rpaFkMUKHAWKr9RDf",
+      "createdBy": "did:e:example.com:dids:checksum______________",
       "createdByDevice": "DVCiZvbvF6dg7cr1nwLw",
       "createdAt": "2024-04-29T12:47:04.436Z",
       "content": {
@@ -15,7 +15,7 @@
               "@type": "ShareAttributeRequestItem",
               "attribute": {
                 "@type": "IdentityAttribute",
-                "owner": "id1JttmYYvjT6wojkJ9rpaFkMUKHAWKr9RDf",
+                "owner": "did:e:example.com:dids:checksum______________",
                 "value": {
                   "@type": "DisplayName",
                   "value": "CodeHarbor"

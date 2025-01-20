@@ -56,7 +56,8 @@ RSpec.describe Enmeshed::RelationshipTemplate do
 
       context 'with an existing display name' do
         before do
-          stub_request(:get, "#{connector_api_url}/Attributes?content.@type=IdentityAttribute&content.owner=id_of_an_example_enmeshed_address_AB&content.value.@type=DisplayName")
+          stub_request(:get, "#{connector_api_url}/Attributes?content.@type=IdentityAttribute&content.owner=" \
+                             'did:e:example.com:dids:checksum______________&content.value.@type=DisplayName')
             .to_return(body: file_fixture('enmeshed/existing_display_name.json'))
         end
 
@@ -67,7 +68,8 @@ RSpec.describe Enmeshed::RelationshipTemplate do
 
       context 'with no existing display name' do
         before do
-          stub_request(:get, "#{connector_api_url}/Attributes?content.@type=IdentityAttribute&content.owner=id_of_an_example_enmeshed_address_AB&content.value.@type=DisplayName")
+          stub_request(:get, "#{connector_api_url}/Attributes?content.@type=IdentityAttribute&content.owner=" \
+                             'did:e:example.com:dids:checksum______________&content.value.@type=DisplayName')
             .to_return(body: file_fixture('enmeshed/no_existing_display_name.json'))
           stub_request(:post, "#{connector_api_url}/Attributes")
             .to_return(body: file_fixture('enmeshed/display_name_created.json'))
@@ -176,7 +178,7 @@ RSpec.describe Enmeshed::RelationshipTemplate do
 
     it 'returns a link to the platforms qr code view action' do
       expect(qr_code_path).to eq '/users/nbp_wallet/qr_code' \
-                                   '?truncated_reference=RelationshipTemplateExampleTruncatedReferenceA%3D%3D'
+                                 '?truncated_reference=RelationshipTemplateExampleTruncatedReferenceA%3D%3D'
     end
   end
 
@@ -195,7 +197,8 @@ RSpec.describe Enmeshed::RelationshipTemplate do
       stub_request(:get, "#{connector_api_url}/Account/IdentityInfo")
         .to_return(body: file_fixture('enmeshed/get_enmeshed_address.json'))
 
-      stub_request(:get, "#{connector_api_url}/Attributes?content.@type=IdentityAttribute&content.owner=id_of_an_example_enmeshed_address_AB&content.value.@type=DisplayName")
+      stub_request(:get, "#{connector_api_url}/Attributes?content.@type=IdentityAttribute&content.owner=" \
+                         'did:e:example.com:dids:checksum______________&content.value.@type=DisplayName')
         .to_return(body: file_fixture('enmeshed/existing_display_name.json'))
     end
 

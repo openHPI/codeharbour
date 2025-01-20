@@ -1,6 +1,7 @@
-# https://github.com/nmshd/connector/blob/746dc3d6fa7dddf224053a8da0fef5a3248474da/src/modules/coreHttpApi/openapi.yml
+# https://github.com/nmshd/connector/blob/main/src/modules/coreHttpApi/openapi.yml
+# current version: https://github.com/nmshd/connector/blob/6.6.1/src/modules/coreHttpApi/openapi.yml
 
-openapi: 3.0.3
+openapi: 3.1.0
 
 servers:
   - url: /
@@ -20,7 +21,7 @@ info:
     name: MIT
     url: https://raw.githubusercontent.com/nmshd/connector/main/LICENSE
   contact:
-    name: j&s-soft GmbH
+    name: j&s-soft AG
     email: info@js-soft.com
     url: https://www.js-soft.com/
 
@@ -142,7 +143,14 @@ paths:
                   configuration:
                     type: object
                     example:
-                      { "database": { "connectionString": "**********************************", "dbName": "accountName" }, "modules": { "coreHttpApi": { "enabled": true } } }
+                      {
+                        "database":
+                          {
+                            "connectionString": "**********************************",
+                            "dbName": "accountName",
+                          },
+                        "modules": { "coreHttpApi": { "enabled": true } },
+                      }
                   identityInfo:
                     type: object
                     $ref: "#/components/schemas/IdentityInfo"
@@ -240,33 +248,11 @@ paths:
         Syncs the Connector messages and relationships with the Backbone.
         Checks for new relationships as well as incoming changes of existing ones.
         Checks for new or updated Messages.
-        Returns all affected relationships and messages.
       tags:
         - Account
       responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  result:
-                    type: object
-                    properties:
-                      relationships:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Relationship"
-                      messages:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Message"
-                    required:
-                      - messages
-                      - relationships
-                required:
-                  - result
+        204:
+          description: No content.
           headers:
             X-Response-Duration-ms:
               schema:
@@ -299,11 +285,6 @@ paths:
                   required:
                     - value
                   properties:
-                    "@type":
-                      type: string
-                      enum: ["IdentityAttribute"]
-                    owner:
-                      $ref: "#/components/schemas/Address"
                     value:
                       $ref: "#/components/schemas/AttributeValue"
                     tags:
@@ -798,7 +779,7 @@ paths:
 
   /api/v2/Attributes/{id}/Versions/Shared:
     get:
-      operationId: getSharedVersionsOfRepositoryAttribute
+      operationId: getSharedVersionsOfAttribute
       tags:
         - Attributes
       parameters:
@@ -1030,7 +1011,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     delete:
       operationId: deleteRepositoryAttribute
-      description: Delete an repository attribute.
+      description: Delete a repository attribute.
       tags:
         - Attributes
       parameters:
@@ -1041,9 +1022,8 @@ paths:
           schema:
             $ref: "#/components/schemas/AttributeID"
       responses:
-        200:
-          description: |
-            Success. Deleting an repository attribute.
+        204:
+          description: Success. Deleting a repository attribute.
           headers:
             X-Response-Duration-ms:
               schema:
@@ -1158,21 +1138,21 @@ paths:
 
   /api/v2/Attributes/ThirdParty/{id}:
     delete:
-      operationId: deleteThirdPartyOwnedRelationshipAttributeAndNotifyPeer
-      description: Delete an third party relationship attribute and notify the owner.
+      operationId: deleteThirdPartyRelationshipAttributeAndNotifyPeer
+      description: Delete a ThirdPartyRelationshipAttribute and notify the peer.
       tags:
         - Attributes
       parameters:
         - in: path
           name: id
-          description: The ID of the third party relationship attribute to delete.
+          description: The ID of the ThirdPartyRelationshipAttribute to delete.
           required: true
           schema:
             $ref: "#/components/schemas/AttributeID"
       responses:
         200:
           description: |
-            Success. Deleting an third party relationship attribute and notifying the owner returns the notificationId of the send notification.
+            Success. Deleting a ThirdPartyRelationshipAttribute and notifying the peer returns the NotificationId of the sent Notification.
           content:
             application/json:
               schema:
@@ -1827,7 +1807,7 @@ paths:
                   type: string
                   format: date-time
                   description: A timestamp that describes when this file will expire.
-                  example: 2023-01-01
+                  example: 2025-01-01
                   nullable: false
                 file:
                   type: string
@@ -1931,7 +1911,7 @@ paths:
   /api/v2/Files/Peer:
     post:
       operationId: loadPeerFile
-      description: Loads a file of another identity. After it is loaded once, you can retrieve it without the need for the secret key by calling one of the GET-routes.
+      description: Loads a file of another identity. After it is loaded once, you can retrieve it without the need for the truncatedReference by calling one of the GET-routes.
       tags:
         - Files
       requestBody:
@@ -1939,16 +1919,9 @@ paths:
           application/json:
             schema:
               oneOf:
-                - $ref: "#/components/schemas/FileReference"
                 - $ref: "#/components/schemas/FileReferenceTruncated"
                 - $ref: "#/components/schemas/TokenReferenceTruncated"
             examples:
-              FileReference:
-                value: |
-                  {
-                    "id": "FIL_________________",
-                    "secretKey": "YOUR_SECRET_KEY"
-                  }
               FileReferenceTruncated:
                 value: |
                   {
@@ -2161,7 +2134,7 @@ paths:
                   type: string
                   format: date-time
                 ephemeral:
-                  description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the id and secretKey of the token. Defaults to true. Will be ignored if Accept is set to image/png.
+                  description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the truncatedReference of the token. Defaults to true. Will be ignored if Accept is set to image/png.
                   type: boolean
       responses:
         201:
@@ -2195,6 +2168,131 @@ paths:
         404:
           $ref: "#/components/responses/NotFound"
 
+  # ------------------- IdentityMetadata -------------------
+
+  /api/v2/IdentityMetadata:
+    put:
+      operationId: upsertIdentityMetadata
+      description: Creates or updates an IdentityMetadata object for the specified `reference` and `key` combination.
+      tags:
+        - IdentityMetadata
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: "#/components/schemas/UpsertIdentityMetadataRequest"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/IdentityMetadata"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
+    get:
+      operationId: getIdentityMetadata
+      description: Fetches the IdentityMetadata with the given `reference` and `key` combination.
+      tags:
+        - IdentityMetadata
+      parameters:
+        - in: query
+          name: reference
+          description: The reference of the IdentityMetadata.
+          required: true
+          schema:
+            $ref: "#/components/schemas/Address"
+        - in: query
+          name: key
+          description: The optional key of the IdentityMetadata.
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/IdentityMetadata"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      operationId: deleteIdentityMetadata
+      description: Deletes the IdentityMetadata with the given `reference` and `key` combination.
+      tags:
+        - IdentityMetadata
+      parameters:
+        - in: query
+          name: reference
+          description: The reference of the IdentityMetadata.
+          required: true
+          schema:
+            $ref: "#/components/schemas/Address"
+        - in: query
+          name: key
+          description: The optional key of the IdentityMetadata.
+          required: false
+          schema:
+            type: string
+      responses:
+        204:
+          description: Success
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
   # ------------------- Messages -------------------
 
   /api/v2/Messages:
@@ -2218,15 +2316,20 @@ paths:
                   items:
                     $ref: "#/components/schemas/Address"
                 content:
-                  allOf:
-                    - $ref: "#/components/schemas/MessageContent"
+                  anyOf:
+                    - $ref: "#/components/schemas/Mail"
+                    - $ref: "#/components/schemas/Request"
+                    - $ref: "#/components/schemas/ResponseWrapper"
+                    - $ref: "#/components/schemas/Notification"
+                    - $ref: "#/components/schemas/ArbitraryMessageContent"
                   nullable: false
                   example:
                     "@type": Mail
-                    to: [id_________________________________]
-                    cc: [id_________________________________]
+                    to: [did:e:<base-url>:dids:<22-characters>]
+                    cc: [did:e:<base-url>:dids:<22-characters>]
                     subject: Subject
                     body: Body
+                  description: Either a Mail, a Request, a ResponseWrapper, a Notification or an ArbitraryMessageContent must be provided as the `content` of the Message.
                 attachments:
                   type: array
                   nullable: true
@@ -2467,6 +2570,64 @@ paths:
 
   # ------------------- Relationships -------------------
 
+  /api/v2/Relationships/CanCreate:
+    put:
+      operationId: canCreateRelationship
+      description: Checks if a Relationship can be created with a given RelationshipTemplate to its creator. Optionally, the potential `creationContent` of the Relationship can also be validated.
+      tags:
+        - Relationships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templateId:
+                  allOf:
+                    - $ref: "#/components/schemas/RelationshipTemplateID"
+                  nullable: false
+                creationContent:
+                  oneOf:
+                    - $ref: "#/components/schemas/RelationshipCreationContent"
+                    - $ref: "#/components/schemas/ArbitraryRelationshipCreationContent"
+                  nullable: false
+                  example:
+                    "@type": "ArbitraryRelationshipCreationContent"
+                    value:
+                      prop1: value
+                      prop2: 1
+                  description: Either a RelationshipCreationContent or an ArbitraryRelationshipCreationContent must be provided as the `creationContent` of the Relationship.
+              required:
+                - templateId
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/CanCreateRelationshipResponse"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
   /api/v2/Relationships:
     post:
       operationId: createRelationship
@@ -2483,16 +2644,20 @@ paths:
                   allOf:
                     - $ref: "#/components/schemas/RelationshipTemplateID"
                   nullable: false
-                content:
-                  allOf:
-                    - $ref: "#/components/schemas/RelationshipChangeRequestContent"
+                creationContent:
+                  oneOf:
+                    - $ref: "#/components/schemas/RelationshipCreationContent"
+                    - $ref: "#/components/schemas/ArbitraryRelationshipCreationContent"
                   nullable: false
                   example:
-                    prop1: value
-                    prop2: 1
+                    "@type": "ArbitraryRelationshipCreationContent"
+                    value:
+                      prop1: value
+                      prop2: 1
+                  description: Either a RelationshipCreationContent or an ArbitraryRelationshipCreationContent must be provided as the `creationContent` of the Relationship.
               required:
                 - templateId
-                - content
+                - creationContent
       responses:
         201:
           description: Success
@@ -2602,6 +2767,37 @@ paths:
         403:
           $ref: "#/components/responses/Forbidden"
 
+    delete:
+      operationId: decomposeRelationship
+      description: Decompose a Relationship that has already been terminated. This action will remove the Relationship and all related data.
+      tags:
+        - Relationships
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the terminated Relationship to decompose.
+          required: true
+          schema:
+            $ref: "#/components/schemas/RelationshipID"
+      responses:
+        204:
+          description: Success
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
   /api/v2/Relationships/{id}/Attributes:
     get:
       operationId: getAttributesForRelationship
@@ -2642,39 +2838,19 @@ paths:
         403:
           $ref: "#/components/responses/Forbidden"
 
-  /api/v2/Relationships/{id}/Changes/{changeId}/Accept:
+  /api/v2/Relationships/{id}/Accept:
     put:
-      operationId: acceptRelationshipChange
-      description: Accepts the change with the given `changeId`. If the change exists but belongs to another relationship, this call will fail and return status 404.
+      operationId: acceptRelationship
+      description: Accepts the pending Relationship.
       tags:
         - Relationships
       parameters:
         - in: path
           name: id
-          description: The ID of the relationship which contains the change.
+          description: The ID of the relationship.
           required: true
           schema:
             $ref: "#/components/schemas/RelationshipID"
-        - in: path
-          name: changeId
-          description: The ID of the change to accept.
-          required: true
-          schema:
-            $ref: "#/components/schemas/RelationshipChangeID"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
-                  allOf:
-                    - $ref: "#/components/schemas/RelationshipChangeResponseContent"
-                  example:
-                    prop1: value
-                    prop2: 1
-              required:
-                - content
       responses:
         200:
           description: Success
@@ -2703,39 +2879,271 @@ paths:
         404:
           $ref: "#/components/responses/NotFound"
 
-  /api/v2/Relationships/{id}/Changes/{changeId}/Reject:
+  /api/v2/Relationships/{id}/Reject:
     put:
-      operationId: rejectRelationshipChange
-      description: Rejects the change with the given `changeId`. If the change exists but belongs to another relationship, this call will fail and return status 404.
+      operationId: rejectRelationship
+      description: Rejects the pending Relationship.
       tags:
         - Relationships
       parameters:
         - in: path
           name: id
-          description: The ID of the relationship which contains the change.
+          description: The ID of the relationship.
           required: true
           schema:
             $ref: "#/components/schemas/RelationshipID"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/Relationship"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
+  /api/v2/Relationships/{id}/Revoke:
+    put:
+      operationId: revokeRelationship
+      description: Revoke the pending relationship. If the relationship was created by another identity the request will return with the error code 500.
+      tags:
+        - Relationships
+      parameters:
         - in: path
-          name: changeId
-          description: The ID of the change to reject.
+          name: id
+          description: The ID of the relationship.
           required: true
           schema:
-            $ref: "#/components/schemas/RelationshipChangeID"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
-                  allOf:
-                    - $ref: "#/components/schemas/RelationshipChangeResponseContent"
-                  example:
-                    prop1: value
-                    prop2: 1
-              required:
-                - content
+            $ref: "#/components/schemas/RelationshipID"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/Relationship"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
+  /api/v2/Relationships/{id}/Terminate:
+    put:
+      operationId: terminateRelationship
+      description: Terminate the relationship.
+      tags:
+        - Relationships
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the relationship to terminate.
+          required: true
+          schema:
+            $ref: "#/components/schemas/RelationshipID"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/Relationship"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
+  /api/v2/Relationships/{id}/Reactivate:
+    put:
+      operationId: requestRelationshipReactivation
+      description: Request the relationship reactivation.
+      tags:
+        - Relationships
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the relationship to request reactivation of.
+          required: true
+          schema:
+            $ref: "#/components/schemas/RelationshipID"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/Relationship"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
+  /api/v2/Relationships/{id}/Reactivate/Accept:
+    put:
+      operationId: acceptRelationshipReactivation
+      description: Accept a relationship reactivation.
+      tags:
+        - Relationships
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the relationship to accept the reactivation of.
+          required: true
+          schema:
+            $ref: "#/components/schemas/RelationshipID"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/Relationship"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
+  /api/v2/Relationships/{id}/Reactivate/Reject:
+    put:
+      operationId: rejectRelationshipReactivation
+      description: Reject a relationship reactivation.
+      tags:
+        - Relationships
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the relationship to reject the reactivation of.
+          required: true
+          schema:
+            $ref: "#/components/schemas/RelationshipID"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    nullable: false
+                    $ref: "#/components/schemas/Relationship"
+                required:
+                  - result
+          headers:
+            X-Response-Duration-ms:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Duration-ms"
+            X-Response-Time:
+              schema:
+                $ref: "#/components/schemas/HeaderContent_X-Response-Time"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+
+  /api/v2/Relationships/{id}/Reactivate/Revoke:
+    put:
+      operationId: revokeRelationshipReactivation
+      description: Revoke a relationship reactivation.
+      tags:
+        - Relationships
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the relationship to revoke the reactivation of.
+          required: true
+          schema:
+            $ref: "#/components/schemas/RelationshipID"
       responses:
         200:
           description: Success
@@ -2846,15 +3254,19 @@ paths:
                 expiresAt:
                   type: string
                   format: date-time
-                  example: 2023-01-01
-                  description: A timestamp that describes when this relationship template expires. Expired templates cannot be used to create relationship requests anymore.
+                  example: 2025-01-01
+                  description: A timestamp that describes when this relationship template expires. Expired templates cannot be used to create relationships anymore.
                 content:
-                  allOf:
+                  oneOf:
                     - $ref: "#/components/schemas/RelationshipTemplateContent"
+                    - $ref: "#/components/schemas/ArbitraryRelationshipTemplateContent"
                   nullable: false
                   example:
-                    prop1: value
-                    prop2: 1
+                    "@type": "ArbitraryRelationshipTemplateContent"
+                    value:
+                      prop1: "value"
+                      prop2: 1
+                  description: Either a RelationshipTemplateContent or an ArbitraryRelationshipTemplateContent must be provided as the `content` of the RelationshipTemplate.
               required:
                 - expiresAt
                 - content
@@ -2945,16 +3357,9 @@ paths:
           application/json:
             schema:
               oneOf:
-                - $ref: "#/components/schemas/RelationshipTemplateReference"
                 - $ref: "#/components/schemas/RelationshipTemplateReferenceTruncated"
                 - $ref: "#/components/schemas/TokenReferenceTruncated"
             examples:
-              RelationshipTemplateReference:
-                value: |
-                  {
-                    "id": "RLT_________________",
-                    "secretKey": "YOUR_SECRET_KEY"
-                  }
               RelationshipTemplateReferenceTruncated:
                 value: |
                   {
@@ -3110,7 +3515,7 @@ paths:
                   type: string
                   format: date-time
                 ephemeral:
-                  description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the id and secretKey of the token. Defaults to true. Will be ignored if Accept is set to image/png.
+                  description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the truncatedReference of the token. Defaults to true. Will be ignored if Accept is set to image/png.
                   type: boolean
       responses:
         201:
@@ -3697,11 +4102,11 @@ paths:
                 expiresAt:
                   type: string
                   format: date-time
-                  example: 2023-01-01
+                  example: 2025-01-01
                   nullable: false
                   description: A timestamp that describes when this token expires. An expired token cannot be fetched from the platform anymore. However it will still be available for auditing purposes.
                 ephemeral:
-                  description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the id and secretKey of the token. Defaults to false.
+                  description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the truncatedReference of the token. Defaults to false.
                   type: boolean
                   example: false
               required:
@@ -3789,44 +4194,18 @@ paths:
         content:
           application/json:
             schema:
-              oneOf:
-                - type: object
-                  properties:
-                    id:
-                      allOf:
-                        - $ref: "#/components/schemas/TokenID"
-                      nullable: false
-                      description: The ID of the received Token which should be fetched. This is usually shared over the side channel (QR-Code, Link).
-                    secretKey:
-                      type: string
-                      format: byte
-                      nullable: false
-                      description: The base64 encoded secret key which was used to encrypt the Token. This is usually shared over the side channel (QR-Code, Link).
-                    ephemeral:
-                      description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the id and secretKey of the token. Defaults to false.
-                      type: boolean
-                  required:
-                    - id
-                    - secretKey
-                - type: object
-                  properties:
-                    reference:
-                      type: string
-                      format: byte
-                      nullable: false
-                      description: The base64 encoded truncated reference of the token, which actually consists of the TokenId and the secretKey.
-                    ephemeral:
-                      description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the id and secretKey of the token. Defaults to false.
-                      type: boolean
-                  required:
-                    - reference
+              properties:
+                reference:
+                  type: string
+                  format: byte
+                  nullable: false
+                  description: The base64 encoded truncated reference of the Token, which actually consists of all information to get and decrypt it.
+                ephemeral:
+                  description: If set to true the token will will not be cached in the database of the connector. Note that you will not be able to fetch this token unless you remember the truncatedReference of the token. Defaults to false.
+                  type: boolean
+              required:
+                - reference
             examples:
-              TokenReference:
-                value: |
-                  {
-                    "id": "TOK_________________",
-                    "secretKey": "YOUR_SECRET_KEY"
-                  }
               TokenReferenceTruncated:
                 value: |
                   {
@@ -4194,8 +4573,7 @@ components:
       type: string
       format: Address
       minLength: 35
-      maxLength: 36
-      example: id_________________________________
+      example: did:e:<base-url>:dids:<22-characters>
 
     AttributeID:
       type: string
@@ -4250,14 +4628,6 @@ components:
       maxLength: 20
       example: REL_________________
       description: The ID of a relationship.
-
-    RelationshipChangeID:
-      type: string
-      format: RelationshipChangeID
-      minLength: 20
-      maxLength: 20
-      example: RCH_________________
-      description: The ID of a relationship change.
 
     RelationshipTemplateID:
       type: string
@@ -4414,6 +4784,8 @@ components:
           anyOf:
             - "$ref": "#/components/schemas/IdentityAttribute"
             - "$ref": "#/components/schemas/RelationshipAttribute"
+        isDefault:
+          type: boolean
       required:
         - id
         - createdAt
@@ -4580,7 +4952,7 @@ components:
           type: string
           format: date-time
           description: A timestamp that describes when this file was created.
-          example: 2020-05-25T11:05:02.924Z
+          example: 2024-05-25T11:05:02.924Z
           nullable: false
         createdBy:
           allOf:
@@ -4594,7 +4966,7 @@ components:
           type: string
           format: date-time
           description: A timestamp that describes when this file will expire. Expired files cannot be accessed anymore. Notice that they will still be available for auditing purposes.
-          example: 2022-05-25T11:05:02.924Z
+          example: 2026-05-25T11:05:02.924Z
           nullable: true
         mimetype:
           type: string
@@ -4607,7 +4979,7 @@ components:
           type: string
           format: byte
           nullable: false
-          description: The base64 encoded truncated reference of the file, which actually consists of the FileId and the secretKey.
+          description: The base64 encoded truncated reference of the File, which actually consists of all information to get and decrypt it.
       required:
         - id
         - title
@@ -4620,23 +4992,6 @@ components:
         - mimetype
         - isOwn
         - truncatedReference
-
-    FileReference:
-      type: object
-      properties:
-        id:
-          allOf:
-            - $ref: "#/components/schemas/FileID"
-          nullable: false
-          description: The ID of the `File` which should be fetched. This is usually shared within a Token.
-        secretKey:
-          type: string
-          format: byte
-          nullable: false
-          description: The secret key which was used to encrypt the `File`. This is usually shared within a Token.
-      required:
-        - id
-        - secretKey
 
     FileReferenceTruncated:
       type: object
@@ -4660,7 +5015,7 @@ components:
         relationshipId:
           allOf:
             - $ref: "#/components/schemas/RelationshipID"
-          nullable: false
+          nullable: true
           description: The id of the relationship to the recipient.
       required:
         - address
@@ -4679,9 +5034,9 @@ components:
         mustBeAccepted:
           type: boolean
           description: Whether the request must be accepted by the peer.
-        responseMetadata:
+        metadata:
           type: object
-          description: The metadata will be sent back in the response.
+          description: Metadata provided by the sender of the request.
       required:
         - "@type"
         - mustBeAccepted
@@ -4700,13 +5055,10 @@ components:
             allOf:
               - $ref: "#/components/schemas/RequestItem"
           type: array
-        mustBeAccepted:
-          type: boolean
-        responseMetadata:
+        metadata:
           type: object
       required:
         - "@type"
-        - mustBeAccepted
         - items
 
     RequestContent:
@@ -4727,7 +5079,6 @@ components:
               - $ref: "#/components/schemas/RequestItem"
               - $ref: "#/components/schemas/RequestItemGroup"
       required:
-        - "@type"
         - items
 
     RequestResponseContentItem:
@@ -4737,13 +5088,9 @@ components:
         result:
           type: string
           enum: [Accepted, Rejected, Failed]
-        metadata:
-          type: object
-          description: The metadata that was sent with the `RequestItem`.
       required:
         - "@type"
         - result
-        - metadata
 
     RequestResponseContentItemGroup:
       properties:
@@ -4753,13 +5100,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RequestResponseContentItem"
-        metadata:
-          type: object
-          description: The metadata that was sent with the `RequestItemGroup`.
       required:
         - "@type"
         - items
-        - metadata
 
     RequestResponseContent:
       type: object
@@ -4780,7 +5123,6 @@ components:
               - $ref: "#/components/schemas/RequestResponseContentItem"
               - $ref: "#/components/schemas/RequestResponseContentItemGroup"
       required:
-        - "@type"
         - result
         - requestId
         - items
@@ -4808,7 +5150,15 @@ components:
           description: A timestamp that describes when this request was created.
         status:
           type: string
-          enum: ["Draft", "Open", "DecisionRequired", "ManualDecisionRequired", "Decided", "Completed"]
+          enum:
+            [
+              "Draft",
+              "Open",
+              "DecisionRequired",
+              "ManualDecisionRequired",
+              "Decided",
+              "Completed",
+            ]
           nullable: false
           description: The status of this request.
         content:
@@ -4849,17 +5199,17 @@ components:
             source:
               type: object
               nullable: true
-              description: The source of this response. Can be a `Message` or a `RelationshipChange`.
+              description: The source of this response. Can be a `Message` or a `Relationship`.
               properties:
                 type:
                   type: string
-                  enum: ["Message", "RelationshipChange"]
+                  enum: ["Message", "Relationship"]
                   nullable: false
                   description: The type of the source of this response.
                 reference:
                   type: string
                   nullable: false
-                  description: The id of the `Message` or the `RelationshipChange`.
+                  description: The id of the `Message` or the `Relationship`.
               required:
                 - type
                 - reference
@@ -4925,9 +5275,23 @@ components:
           "items":
             [
               { "accept": true },
-              { "accept": false, "code": "an.error.code", "message": "Error Message" },
-              { "items": [{ "accept": "true" }, { "accept": false, "code": "an.error.code", "message": "Error Message" }] }
-            ]
+              {
+                "accept": false,
+                "code": "an.error.code",
+                "message": "Error Message",
+              },
+              {
+                "items":
+                  [
+                    { "accept": "true" },
+                    {
+                      "accept": false,
+                      "code": "an.error.code",
+                      "message": "Error Message",
+                    },
+                  ],
+              },
+            ],
         }
 
     CanCreateOutgoingRequestRequest:
@@ -4943,9 +5307,10 @@ components:
             items:
               type: array
               items:
-                allOf:
+                oneOf:
                   - $ref: "#/components/schemas/RequestItemGroup"
                   - $ref: "#/components/schemas/RequestItem"
+                description: The `items` of a Request can be of type RequestItemGroup or RequestItem.
         peer:
           description: The address of the peer that will receive the request. This is optional because in case of a RelationshipTemplate you do not know the peer address yet. For better results you should specify `peer` whenever you know it.
           allOf:
@@ -4966,9 +5331,10 @@ components:
             items:
               type: array
               items:
-                allOf:
+                oneOf:
                   - $ref: "#/components/schemas/RequestItemGroup"
                   - $ref: "#/components/schemas/RequestItem"
+                description: The `items` of a Request can be of type RequestItemGroup or RequestItem.
         peer:
           allOf:
             - $ref: "#/components/schemas/Address"
@@ -5006,6 +5372,9 @@ components:
         content:
           anyOf:
             - "$ref": "#/components/schemas/IdentityAttribute"
+        isDefault:
+          type: boolean
+          enum: [true]
       required:
         - id
         - createdAt
@@ -5028,7 +5397,15 @@ components:
           items:
             allOf:
               - $ref: "#/components/schemas/RequestValidationResult"
-          example: [{ "isSuccess": true, "code": "string", "message": "string", "items": [] }]
+          example:
+            [
+              {
+                "isSuccess": true,
+                "code": "string",
+                "message": "string",
+                "items": [],
+              },
+            ]
       required:
         - isSuccess
         - items
@@ -5075,8 +5452,12 @@ components:
           items:
             $ref: "#/components/schemas/Recipient"
         content:
-          allOf:
-            - $ref: "#/components/schemas/MessageContent"
+          anyOf:
+            - $ref: "#/components/schemas/Mail"
+            - $ref: "#/components/schemas/Request"
+            - $ref: "#/components/schemas/ResponseWrapper"
+            - $ref: "#/components/schemas/Notification"
+            - $ref: "#/components/schemas/ArbitraryMessageContent"
           nullable: false
         attachments:
           type: array
@@ -5123,8 +5504,12 @@ components:
           items:
             $ref: "#/components/schemas/Recipient"
         content:
-          allOf:
-            - $ref: "#/components/schemas/MessageContent"
+          anyOf:
+            - $ref: "#/components/schemas/Mail"
+            - $ref: "#/components/schemas/Request"
+            - $ref: "#/components/schemas/ResponseWrapper"
+            - $ref: "#/components/schemas/Notification"
+            - $ref: "#/components/schemas/ArbitraryMessageContent"
           nullable: false
         attachments:
           type: array
@@ -5143,8 +5528,68 @@ components:
         - content
         - isOwn
 
-    MessageContent:
+    ResponseWrapper:
       type: object
+      additionalProperties: false
+      properties:
+        "@type":
+          type: string
+          enum: ["ResponseWrapper"]
+        requestId:
+          $ref: "#/components/schemas/RequestID"
+        requestSourceReference:
+          anyOf:
+            - $ref: "#/components/schemas/RelationshipTemplateID"
+            - $ref: "#/components/schemas/MessageID"
+        requestSourceType:
+          type: string
+          enum: ["RelationshipTemplate", "Message"]
+        response:
+          $ref: "#/components/schemas/RequestResponseContent"
+      required:
+        - "@type"
+        - requestId
+        - requestSourceReference
+        - requestSourceType
+        - response
+
+    Mail:
+      type: object
+      additionalProperties: false
+      properties:
+        "@type":
+          type: string
+          enum: ["Mail"]
+        to:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+        cc:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+        subject:
+          type: string
+        body:
+          type: string
+      required:
+        - "@type"
+        - to
+        - subject
+        - body
+
+    ArbitraryMessageContent:
+      type: object
+      additionalProperties: false
+      properties:
+        "@type":
+          type: string
+          enum: ["ArbitraryMessageContent"]
+        value:
+          type: object
+      required:
+        - "@type"
+        - value
 
     Notification:
       type: object
@@ -5152,13 +5597,43 @@ components:
       required:
         - id
         - items
+        - "@type"
       properties:
+        "@type":
+          type: string
+          enum: ["Notification"]
         id:
           $ref: "#/components/schemas/NotificationID"
         items:
           type: array
           items:
             type: object
+
+    CanCreateRelationshipResponse:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+      oneOf:
+        - properties:
+            isSuccess:
+              const: true
+          required:
+            - isSuccess
+          additionalProperties: false
+
+        - properties:
+            isSuccess:
+              const: false
+            code:
+              type: string
+            message:
+              type: string
+          required:
+            - isSuccess
+            - code
+            - message
+          additionalProperties: false
 
     Relationship:
       type: object
@@ -5173,110 +5648,118 @@ components:
             - $ref: "#/components/schemas/RelationshipTemplate"
           nullable: false
         status:
-          type: string
-          enum: [Pending, Active, Rejected]
-          nullable: false
-          description: The status of the relationship
+          $ref: "#/components/schemas/RelationshipStatus"
         peer:
           allOf:
             - $ref: "#/components/schemas/Address"
           nullable: false
           description: The address of the peer identity.
-        changes:
+        peerIdentity:
+          type: object
+          additionalProperties: false
+          properties:
+            address:
+              allOf:
+                - $ref: "#/components/schemas/Address"
+              nullable: false
+            publicKey:
+              type: string
+              nullable: false
+          required:
+            - address
+            - publicKey
+        peerDeletionInfo:
+          type: object
+          additionalProperties: false
+          properties:
+            deletionStatus:
+              type: string
+              enum: ["ToBeDeleted", "Deleted"]
+              description: The status of the deletion
+            deletionDate:
+              type: string
+              description: The date of the deletion
+          required:
+            - deletionStatus
+            - deletionDate
+        creationContent:
+          oneOf:
+            - $ref: "#/components/schemas/RelationshipCreationContent"
+            - $ref: "#/components/schemas/ArbitraryRelationshipCreationContent"
+          nullable: false
+          description: The content at creation.
+        auditLog:
           type: array
           items:
-            $ref: "#/components/schemas/RelationshipChange"
+            $ref: "#/components/schemas/RelationshipAuditLogEntry"
           nullable: false
+          description: The audit log of the relationship.
       required:
         - id
         - template
         - status
         - peer
-        - changes
+        - peerIdentity
+        - creationContent
+        - auditLog
 
-    RelationshipChange:
+    RelationshipCreationContent:
       type: object
+      additionalProperties: false
       properties:
-        id:
-          allOf:
-            - $ref: "#/components/schemas/RelationshipChangeID"
-          nullable: false
-        type:
+        "@type":
           type: string
-          nullable: false
-          enum: [Creation]
-        status:
-          type: string
-          nullable: false
-          enum: [Pending, Rejected, Accepted]
-        request:
-          $ref: "#/components/schemas/RelationshipChangeRequest"
+          enum: ["RelationshipCreationContent"]
         response:
-          $ref: "#/components/schemas/RelationshipChangeResponse"
+          $ref: "#/components/schemas/RequestResponseContent"
       required:
-        - id
-        - type
-        - status
-        - request
+        - "@type"
+        - response
 
-    RelationshipChangeRequest:
+    ArbitraryRelationshipCreationContent:
       type: object
+      additionalProperties: false
       properties:
-        createdBy:
-          allOf:
-            - $ref: "#/components/schemas/Address"
-          nullable: false
-        createdByDevice:
-          allOf:
-            - $ref: "#/components/schemas/DeviceID"
-          nullable: false
-        createdAt:
+        "@type":
           type: string
-          format: date-time
-          nullable: false
-          description: A timestamp that describes when this `RelationshipChange` was created on the platform.
-          readOnly: true
-        content:
-          $ref: "#/components/schemas/RelationshipChangeRequestContent"
+          enum: ["ArbitraryRelationshipCreationContent"]
+        value:
+          type: object
       required:
-        - createdBy
-        - createdByDevice
-        - createdAt
-        - content
-
-    RelationshipChangeRequestContent:
-      type: object
-
-    RelationshipChangeResponse:
-      type: object
-      properties:
-        createdBy:
-          allOf:
-            - $ref: "#/components/schemas/Address"
-          nullable: false
-        createdByDevice:
-          allOf:
-            - $ref: "#/components/schemas/DeviceID"
-          nullable: false
-        createdAt:
-          type: string
-          format: date-time
-          nullable: false
-          description: A timestamp that describes when this `RelationshipChange` was created on the platform.
-          readOnly: true
-        content:
-          $ref: "#/components/schemas/RelationshipChangeResponseContent"
-      required:
-        - createdBy
-        - createdByDevice
-        - createdAt
-        - content
-
-    RelationshipChangeResponseContent:
-      type: object
+        - "@type"
+        - value
 
     RelationshipTemplateContent:
       type: object
+      additionalProperties: false
+      properties:
+        "@type":
+          type: string
+          enum: ["RelationshipTemplateContent"]
+        title:
+          type: string
+        metadata:
+          type: object
+        onNewRelationship:
+          $ref: "#/components/schemas/RequestContent"
+        onExistingRelationship:
+          $ref: "#/components/schemas/RequestContent"
+      required:
+        - "@type"
+        - onNewRelationship
+
+    ArbitraryRelationshipTemplateContent:
+      type: object
+      additionalProperties: false
+      properties:
+        "@type":
+          type: string
+          enum: ["ArbitraryRelationshipTemplateContent"]
+        value:
+          type: object
+      required:
+        - "@type"
+        - value
 
     RelationshipTemplate:
       type: object
@@ -5315,18 +5798,15 @@ components:
           format: date-time
           description: A timestamp that describes when this relationship template expires. Expired templates cannot be used to create relationship requests anymore.
         content:
-          allOf:
+          oneOf:
             - $ref: "#/components/schemas/RelationshipTemplateContent"
+            - $ref: "#/components/schemas/ArbitraryRelationshipTemplateContent"
           nullable: false
-        secretKey:
-          type: string
-          nullable: false
-          description: The base64 encoded secret key which was used to encrypt the RelationshipTemplate.
         truncatedReference:
           type: string
           format: byte
           nullable: false
-          description: The base64 encoded truncated reference of the RelationshipTemplate, which actually consists of the RelationshipTemplateId and the secretKey.
+          description: The base64 encoded truncated reference of the RelationshipTemplate, which actually consists of all information to get and decrypt it.
       required:
         - id
         - isOwn
@@ -5337,23 +5817,6 @@ components:
         - content
         - truncatedReference
 
-    RelationshipTemplateReference:
-      type: object
-      properties:
-        id:
-          allOf:
-            - $ref: "#/components/schemas/RelationshipTemplateID"
-          nullable: false
-          description: The ID of the received RelationshipTemplate which should be fetched. This is usually shared within a Token.
-        secretKey:
-          type: string
-          format: byte
-          nullable: false
-          description: The secret key which was used to encrypt the RelationshipTemplate. This is usually shared within a Token.
-      required:
-        - id
-        - secretKey
-
     RelationshipTemplateReferenceTruncated:
       type: object
       properties:
@@ -5363,6 +5826,56 @@ components:
           description: The base64 encoded truncated reference of the RelationshipTemplate.
       required:
         - reference
+
+    RelationshipAuditLogEntry:
+      type: object
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          nullable: false
+        createdBy:
+          type: string
+          format: date-time
+          nullable: false
+        createdByDevice:
+          $ref: "#/components/schemas/DeviceID"
+        reason:
+          $ref: "#/components/schemas/RelationshipAuditLogEntryReason"
+        oldStatus:
+          $ref: "#/components/schemas/RelationshipStatus"
+        newStatus:
+          $ref: "#/components/schemas/RelationshipStatus"
+      required:
+        - createdAt
+        - createdBy
+        - createdByDevice
+        - reason
+        - newStatus
+
+    RelationshipAuditLogEntryReason:
+      type: string
+      enum:
+        - Creation
+        - AcceptanceOfCreation
+        - RejectionOfCreation
+        - RevocationOfCreation
+        - Termination
+        - ReactivationRequested
+        - AcceptanceOfReactivation
+        - RejectionOfReactivation
+        - RevocationOfReactivation
+        - Decomposition
+
+    RelationshipStatus:
+      type: string
+      enum:
+        - Pending
+        - Active
+        - Rejected
+        - Revoked
+        - Terminated
+        - DeletionProposed
 
     SignedChallenge:
       type: object
@@ -5440,16 +5953,11 @@ components:
           format: date-time
           nullable: false
           description: A timestamp that describes when this token expires. An expired token cannot be fetched from the platform anymore. However it will still be available for auditing purposes.
-        secretKey:
-          type: string
-          format: byte
-          nullable: false
-          description: The base64 encoded secret key which was used to encrypt the Token. This is usually shared over the side channel (QR-Code, Link).
         truncatedReference:
           type: string
           format: byte
           nullable: false
-          description: The base64 encoded truncated reference of the token, which actually consists of the TokenId and the secretKey.
+          description: The base64 encoded truncated reference of the Token, which actually consists of all information to get and decrypt it.
       required:
         - id
         - createdBy
@@ -5457,25 +5965,7 @@ components:
         - content
         - createdAt
         - expiresAt
-        - secretKey
         - truncatedReference
-
-    TokenReference:
-      type: object
-      properties:
-        id:
-          allOf:
-            - $ref: "#/components/schemas/TokenID"
-          nullable: false
-          description: The ID of the received Token which should be fetched. This is usually shared over the side channel (QR-Code, Link).
-        secretKey:
-          type: string
-          format: byte
-          nullable: false
-          description: The base64 encoded secret key which was used to encrypt the Token. This is usually shared over the side channel (QR-Code, Link).
-      required:
-        - id
-        - secretKey
 
     TokenReferenceTruncated:
       type: object
@@ -5484,13 +5974,52 @@ components:
           type: string
           format: byte
           nullable: false
-          description: The base64 encoded truncated reference of the token, which actually consists of the TokenId and the secretKey.
+          description: The base64 encoded truncated reference of the Token, which actually consists of all information to get and decrypt it.
       required:
         - reference
 
     TokenContent:
       type: object
       description: The arbitrary JSON object which should be shared between creator of the Token and the recipient.
+
+    IdentityMetadata:
+      type: object
+      additionalProperties: false
+      properties:
+        reference:
+          allOf:
+            - $ref: "#/components/schemas/Address"
+          nullable: false
+          description: The address of the identity for that the metadata is stored for.
+        key:
+          type: string
+          nullable: true
+          description: An optional key to identify the metadata. Can be used to store multiple metadata entries for the same identity. There can be at most one IdentityMetadata per `reference` and `key` combination.
+        value:
+          type: object
+          example: { "key": "value" }
+          description: The metadata value as a JSON object.
+      required:
+        - reference
+        - value
+
+    UpsertIdentityMetadataRequest:
+      type: object
+      properties:
+        reference:
+          allOf:
+            - $ref: "#/components/schemas/Address"
+          nullable: false
+        key:
+          type: string
+          nullable: true
+        value:
+          type: object
+          nullable: false
+          example: { "key": "value" }
+      required:
+        - reference
+        - value
 
     # ------------------- General -------------------
 

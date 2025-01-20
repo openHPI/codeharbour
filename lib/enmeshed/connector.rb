@@ -20,7 +20,7 @@ module Enmeshed
       # @return [String] The ID of the created attribute.
       def create_attribute(attribute)
         response = connection.post('/api/v2/Attributes') do |request|
-          request.body = {content: attribute.to_h}.to_json
+          request.body = attribute.to_json
         end
         parse_result(response, Attribute).id
       end
@@ -67,14 +67,21 @@ module Enmeshed
         parse_result(response, Relationship)
       end
 
-      # @return [Boolean] Whether the relationship change was changed (accepted or rejected) successfully.
-      def respond_to_rel_change(relationship_id, change_id, action = 'Accept')
-        response =
-          connection.put("/api/v2/Relationships/#{relationship_id}/Changes/#{change_id}/#{action}") do |request|
-            request.body = {content: {}}.to_json
-          end
+      # @return [Boolean] Whether the relationship was accepted successfully.
+      def accept_relationship(relationship_id)
+        response = connection.put("/api/v2/Relationships/#{relationship_id}/Accept")
         Rails.logger.debug do
-          "Enmeshed::ConnectorApi responded to RelationshipChange with: #{action}; " \
+          "Enmeshed::ConnectorApi accepted the relationship; connector response status is #{response.status}"
+        end
+
+        response.status == 200
+      end
+
+      # @return [Boolean] Whether the relationship was rejected successfully.
+      def reject_relationship(relationship_id)
+        response = connection.put("/api/v2/Relationships/#{relationship_id}/Reject")
+        Rails.logger.debug do
+          'Enmeshed::ConnectorApi rejected the relationship; ' \
             "connector response status is #{response.status}"
         end
 

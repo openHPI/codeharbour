@@ -88,7 +88,7 @@ RSpec.describe Enmeshed::Connector do
     end
 
     it 'returns the parsed address' do
-      expect(enmeshed_address).to eq 'id_of_an_example_enmeshed_address_AB'
+      expect(enmeshed_address).to eq 'did:e:example.com:dids:checksum______________'
     end
   end
 
@@ -120,13 +120,11 @@ RSpec.describe Enmeshed::Connector do
     end
   end
 
-  describe '.respond_to_rel_change' do
-    subject(:respond_to_rel_change) { connector.respond_to_rel_change(relationship_id, change_id) }
-
-    let(:accept_request_stub) { stub_request(:put, "#{connector_api_url}/Relationships/#{relationship_id}/Changes/#{change_id}/Accept") }
+  describe '.accept_relationship' do
+    subject(:accept_relationship) { connector.accept_relationship(relationship_id) }
 
     let(:relationship_id) { 'RELoi9IL4adMbj92K8dn' }
-    let(:change_id) { 'RCHNFJ9JD2LayPxn79nO' }
+    let(:accept_request_stub) { stub_request(:put, "#{connector_api_url}/Relationships/#{relationship_id}/Accept") }
 
     context 'with a successful response' do
       before do
@@ -134,17 +132,45 @@ RSpec.describe Enmeshed::Connector do
       end
 
       it 'is true' do
-        expect(respond_to_rel_change).to be_truthy
+        expect(accept_relationship).to be_truthy
       end
     end
 
     context 'with a failed response' do
       before do
-        accept_request_stub.to_return(status: 500)
+        accept_request_stub.to_return(status: 404)
       end
 
       it 'is false' do
-        expect(respond_to_rel_change).to be false
+        expect(accept_relationship).to be false
+      end
+    end
+  end
+
+  describe '.reject_relationship' do
+    subject(:reject_relationship) { connector.reject_relationship(relationship_id) }
+
+    let(:reject_request_stub) { stub_request(:put, "#{connector_api_url}/Relationships/#{relationship_id}/Reject") }
+
+    let(:relationship_id) { 'RELoi9IL4adMbj92K8dn' }
+
+    context 'with a successful response' do
+      before do
+        reject_request_stub
+      end
+
+      it 'is true' do
+        expect(reject_relationship).to be_truthy
+      end
+    end
+
+    context 'with a failed response' do
+      before do
+        reject_request_stub.to_return(status: 404)
+      end
+
+      it 'is false' do
+        expect(reject_relationship).to be false
       end
     end
   end
