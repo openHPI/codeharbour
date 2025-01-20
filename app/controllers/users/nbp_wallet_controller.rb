@@ -49,6 +49,9 @@ module Users
     private
 
     def accept_and_create_user(relationship) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+      # Enmeshed::Relationship checks for the presence of all the requested attributes first and later parses the
+      # provided status group. If it is not a synonym of the valid ones, the attribute is cleared so that a fitting
+      # alert can be passed on to the user here.
       if relationship.userdata[:status_group].blank?
         abort_and_refresh(
           relationship,
