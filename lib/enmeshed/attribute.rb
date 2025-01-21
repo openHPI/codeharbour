@@ -19,7 +19,7 @@ module Enmeshed
       super
 
       attribute_type = content.dig(:content, :@type)
-      desired_klass = descendants&.find {|descendant| descendant.klass == attribute_type }
+      desired_klass = descendants.find {|descendant| descendant.klass == attribute_type }
       raise ConnectorError.new("Unknown attribute type: #{attribute_type}") unless desired_klass
 
       attributes = {
@@ -34,6 +34,17 @@ module Enmeshed
 
     def to_h
       default_attributes.deep_merge(additional_attributes)
+    end
+
+    def to_json(*)
+      {
+        content: {
+          value: {
+            '@type': @type,
+            value: @value,
+          },
+        },
+      }.to_json(*)
     end
 
     def id

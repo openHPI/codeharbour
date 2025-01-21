@@ -1,6 +1,6 @@
 {
   "result": {
-    "address": "id_of_an_example_enmeshed_address_AB",
+    "address": "did:e:example.com:dids:checksum______________",
     "publicKey": "eyJwdWIiOiJZV2xVNDV1aEJsZmREa05iQ3RMSnhZaW1zckRGTlBXVHFfcjdLZUlYemN3IiwiYWxnIjozfQ"
   }
 }
