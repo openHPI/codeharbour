@@ -28,9 +28,11 @@ module Enmeshed
       # @return [String, nil] The ID of the existing attribute or nil if none was found.
       def fetch_existing_attribute(attribute)
         response = connection.get('/api/v2/Attributes') do |request|
-          request.params['content.@type'] = attribute.klass
-          request.params['content.owner'] = attribute.owner
-          request.params['content.value.@type'] = attribute.type
+          request.params.tap do |p|
+            p['content.@type'] = attribute.klass
+            p['content.owner'] = attribute.owner
+            p['content.value.@type'] = attribute.type
+          end
         end
         parse_result(response, Attribute).find {|attr| attr.value == attribute.value }&.id
       end
