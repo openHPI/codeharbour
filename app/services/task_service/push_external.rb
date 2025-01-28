@@ -12,7 +12,11 @@ module TaskService
       body = @zip.string
       begin
         response = connection.post {|request| request_parameters(request, body) }
-        response.success? ? nil : response.body
+        if response.success?
+          nil
+        else
+          response.status == 401 ? I18n.t('tasks.export_external_confirm.not_authorized', account_link: @account_link.name) : response.body
+        end
       rescue StandardError => e
         e
       end

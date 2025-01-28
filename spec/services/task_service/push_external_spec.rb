@@ -53,6 +53,13 @@ RSpec.describe TaskService::PushExternal do
 
         it { is_expected.to be response }
       end
+
+      context 'when response status is 401' do
+        let(:status) { 401 }
+        let(:response) { I18n.t('tasks.export_external_confirm.not_authorized', account_link: account_link.name) }
+
+        it { is_expected.to eq response }
+      end
     end
 
     context 'when an error occurs' do

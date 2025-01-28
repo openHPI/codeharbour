@@ -8,6 +8,7 @@ de:
       error_alert: Die Aufgabe konnte nicht dupliziert werden.
     export_external_confirm:
       error: 'Der Export der Aufgabe (%{title}) ist fehlgeschlagen. <br> Fehler: %{error}'
+      not_authorized: Die Autorisierung mit "%{account_link}" konnte nicht hergestellt werden. Ist der API-Schlüssel korrekt?
       success: Aufgabe (%{title}) erfolgreich exportiert.
     import:
       internal_error: Beim Import dieser Aufgabe ist auf CodeHarbor ein interner Fehler aufgetreten.

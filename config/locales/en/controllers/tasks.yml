@@ -8,6 +8,7 @@ en:
       error_alert: Task could not be duplicated
     export_external_confirm:
       error: 'Export of task (%{title}) failed. <br> Error: %{error}'
+      not_authorized: Authorization with could not be established with "%{account_link}". Is the API Key correct?
       success: Task (%{title}) successfully exported.
     import:
       internal_error: An internal error occurred on CodeHarbor while importing the exercise.
