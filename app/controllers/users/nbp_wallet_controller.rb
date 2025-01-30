@@ -11,7 +11,7 @@ module Users
         redirect_to nbp_wallet_finalize_users_path and return
       end
 
-      @template = Enmeshed::RelationshipTemplate.create!(nbp_uid: @provider_uid)
+      @relationship_template = Enmeshed::RelationshipTemplate.create!(nbp_uid: @provider_uid)
     rescue Enmeshed::ConnectorError, Faraday::Error => e
       Sentry.capture_exception(e)
       Rails.logger.debug { e }

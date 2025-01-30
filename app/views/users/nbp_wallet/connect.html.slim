@@ -5,15 +5,21 @@
 
 .row
   .col-8.col-md-4.col-lg-3
-    = link_to @template.url
-      = image_tag @template.qr_code_path, data: {'template-validity': @template.remaining_validity&.seconds}, alt: t('.qr_code_alt_text'), class: 'img-fluid nbp_wallet_qr_code'
-    = button_tag class: 'btn btn-primary regenerate-qr-code-button w-100 mt-3' do
+    = link_to @relationship_template.url
+      = image_tag @relationship_template.qr_code_path,
+        data: {id: 'nbp_wallet_qr_code', 'remaining-validity': @relationship_template.remaining_validity},
+        alt: t('.qr_code_alt_text'),
+        class: 'img-responsive'
+    .buttons.btn.btn-primary.w-100.mt-3 data-behavior='reload-on-click'
       = t('.regenerate_code')
     = link_to destroy_user_session_path, method: :delete, class: 'btn btn-outline-danger w-100 mt-3'
       =  t('.cancel_registration')
   .col-8.col-md-6.mt-3.ms-md-3.mt-md-0
     p.fs-6
-      = t('.info_html', alternative_link: @template.url, app_store_link: @template.app_store_link, play_store_link: @template.play_store_link)
+      = t('.info_html',
+        alternative_link: @relationship_template.url,
+        app_store_link: @relationship_template.app_store_link,
+        play_store_link: @relationship_template.play_store_link)
 
 hr.mt-5
 h5

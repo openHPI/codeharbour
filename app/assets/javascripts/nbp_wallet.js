@@ -1,43 +1,51 @@
 let templateValidity = 0;
-let finalizing = false;
+let intervalID;
+let timeoutID;
 
 const checkStatus = async () => {
-  if (!finalizing) {
-    try {
-      const response = await fetch('/nbp_wallet/relationship_status');
-      const json = await response.json();
+  try {
+    const response = await fetch(Routes.nbp_wallet_relationship_status_users_path());
+    const json = await response.json();
 
-      if (json.status === 'ready' && !finalizing) {
-        finalizing = true;
-        window.location.pathname = '/nbp_wallet/finalize';
-      }
-    } catch (error) {
-      console.error(error);
+    if (json.status === 'ready' && window.location.pathname === Routes.nbp_wallet_connect_users_path()) {
+      window.location.pathname = Routes.nbp_wallet_finalize_users_path();
     }
+  } catch (error) {
+    console.error(error);
   }
-  setTimeout(checkStatus, 1000);
+  timeoutID = setTimeout(checkStatus, 1000);
 };
 
 const countdownValidity = () => {
   if (templateValidity > 0) {
     templateValidity -= 1;
   }
-  if (templateValidity === 0) {
+  if (templateValidity === 0 && window.location.pathname === Routes.nbp_wallet_connect_users_path()) {
     window.location.reload();
   }
 };
 
+window.addEventListener("turbolinks:before-render", () => {
+  clearInterval(intervalID);
+  clearTimeout(timeoutID);
+});
+
+window.addEventListener("beforeunload", () => {
+  clearInterval(intervalID);
+  clearTimeout(timeoutID);
+});
+
 $(document).on('turbolinks:load', function () {
-  if (window.location.pathname !== '/nbp_wallet/connect') {
+  if (window.location.pathname !== Routes.nbp_wallet_connect_users_path()) {
     return;
   }
 
-  document.querySelector('.regenerate-qr-code-button').addEventListener('click', () => {
+  document.querySelector('[data-behavior=reload-on-click]').addEventListener('click', () => {
     window.location.reload();
   });
 
   // Subtract 5 seconds to make sure the displayed code is always valid (accounting for loading times)
   templateValidity = document.querySelector('[data-id="nbp_wallet_qr_code"]').dataset.remainingValidity - 5;
   checkStatus();
-  setInterval(countdownValidity, 1000);
+  intervalID = setInterval(countdownValidity, 1000);
 });
