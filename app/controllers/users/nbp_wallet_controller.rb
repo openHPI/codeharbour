@@ -37,7 +37,7 @@ module Users
 
     def finalize
       relationship = Enmeshed::Relationship.pending_for(@provider_uid)
-      abort_and_refresh(relationship) and return if relationship.blank?
+      return abort_and_refresh(relationship) if relationship.blank?
 
       accept_and_create_user(relationship)
     rescue Enmeshed::ConnectorError, Faraday::Error => e
