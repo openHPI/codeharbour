@@ -51,7 +51,13 @@ RSpec.describe TaskService::PushExternal do
         let(:status) { 500 }
         let(:response) { 'an error occured' }
 
-        it { is_expected.to be response }
+        it { is_expected.to eql response }
+
+        context 'when response contains problematic characters' do
+          let(:response) { 'an <error> occurred' }
+
+          it { is_expected.to eql 'an &lt;error&gt; occurred' }
+        end
       end
 
       context 'when response status is 401' do
@@ -59,6 +65,24 @@ RSpec.describe TaskService::PushExternal do
         let(:response) { I18n.t('tasks.export_external_confirm.not_authorized', account_link: account_link.name) }
 
         it { is_expected.to eq response }
+      end
+
+      context 'when faraday throws an error' do
+        let(:connection) { instance_double(Faraday::Connection) }
+        let(:error) { Faraday::ServerError }
+
+        before do
+          allow(Faraday).to receive(:new).and_return(connection)
+          allow(connection).to receive(:post).and_raise(error)
+        end
+
+        it { is_expected.to eql I18n.t('tasks.export_external_confirm.server_error', account_link: account_link.name) }
+
+        context 'when another error occurs' do
+          let(:error) { 'another error' }
+
+          it { is_expected.to eql 'another error' }
+        end
       end
     end
 

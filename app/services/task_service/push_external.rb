@@ -9,20 +9,23 @@ module TaskService
     end
 
     def execute
-      body = @zip.string
-      begin
-        response = connection.post {|request| request_parameters(request, body) }
-        if response.success?
-          nil
-        else
-          response.status == 401 ? I18n.t('tasks.export_external_confirm.not_authorized', account_link: @account_link.name) : response.body
-        end
-      rescue StandardError => e
-        e
-      end
+      response = connection.post {|request| request_parameters(request, @zip.string) }
+      return nil if response.success?
+      return I18n.t('tasks.export_external_confirm.not_authorized', account_link: @account_link.name) if response.status == 401
+
+      handle_error(message: response.body)
+    rescue Faraday::ServerError => e
+      handle_error(error: e, message: I18n.t('tasks.export_external_confirm.server_error', account_link: @account_link.name))
+    rescue StandardError => e
+      handle_error(error: e)
     end
 
     private
+
+    def handle_error(message: nil, error: nil)
+      Sentry.capture_exception(error) if error.present?
+      ERB::Util.html_escape(message || error.to_s)
+    end
 
     def request_parameters(request, body)
       request.tap do |req|
@@ -35,6 +38,9 @@ module TaskService
 
     def connection
       Faraday.new(url: @account_link.push_url) do |faraday|
+        faraday.options[:open_timeout] = 5
+        faraday.options[:timeout] = 5
+
         faraday.adapter Faraday.default_adapter
       end
     end
