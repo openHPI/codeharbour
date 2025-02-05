@@ -32,19 +32,12 @@ module Enmeshed
       desired_klass.new(**attributes.compact)
     end
 
+    # Serialize all available attributes of an Attribute object.
+    # E.g. for sharing it when making the API request to create a relationship template.
+    #
+    # @return [Hash]
     def to_h
       default_attributes.deep_merge(additional_attributes)
-    end
-
-    def to_json(*)
-      {
-        content: {
-          value: {
-            '@type': @type,
-            value: @value,
-          },
-        },
-      }.to_json(*)
     end
 
     def id
