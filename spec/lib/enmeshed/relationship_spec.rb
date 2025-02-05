@@ -105,6 +105,17 @@ RSpec.describe Enmeshed::Relationship do
       end
     end
 
+    context 'with gibberish as status group' do
+      before do
+        response_items.last[:attribute][:value][:value] = 'gibberish'
+      end
+
+      it 'returns `nil` as the status group' do
+        expect(userdata).to eq({email: 'john.oliver@example103.org', first_name: 'John', last_name: 'Oliver',
+          status_group: nil})
+      end
+    end
+
     context 'with a blank attribute' do
       before do
         json[:@type]

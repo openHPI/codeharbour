@@ -83,15 +83,6 @@ RSpec.describe 'Users::NBPWallet::Finalize' do
       end
     end
 
-    shared_examples 'a documented erroneous request' do |error|
-      it 'passes the error reason to Sentry' do
-        expect(Sentry).to receive(:capture_exception) do |e|
-          expect(e).to be_a error
-        end
-        finalize_request
-      end
-    end
-
     context 'without the session' do
       let(:session_params) { {} }
 
@@ -116,7 +107,7 @@ RSpec.describe 'Users::NBPWallet::Finalize' do
       require 'enmeshed/connector'
 
       let(:relationship) do
-        instance_double(Enmeshed::Relationship, accept!: false, reject!: true)
+        instance_double(Enmeshed::Relationship, reject!: true)
       end
 
       before do
@@ -124,8 +115,7 @@ RSpec.describe 'Users::NBPWallet::Finalize' do
         allow(relationship).to receive(:userdata).and_raise(Enmeshed::ConnectorError, 'EMailAddress must not be empty')
       end
 
-      it_behaves_like 'a handled erroneous request', I18n.t('common.errors.generic')
-      it_behaves_like 'a documented erroneous request', Enmeshed::ConnectorError
+      it_behaves_like 'a handled erroneous request', 'EMailAddress must not be empty'
     end
 
     context 'with an invalid status group' do
@@ -146,6 +136,22 @@ RSpec.describe 'Users::NBPWallet::Finalize' do
 
       it_behaves_like 'a handled erroneous request', 'Could not create User: Unknown role. Please select either ' \
                                                      '"Teacher" or "Student" as your role.'
+    end
+
+    context 'with an unexpected format in the response items' do
+      # `Enmeshed::ConnectorError` is unknown until 'lib/enmeshed/connector.rb' is loaded, because it's defined there
+      require 'enmeshed/connector'
+
+      let(:relationship) do
+        instance_double(Enmeshed::Relationship, reject!: true)
+      end
+
+      before do
+        allow(Enmeshed::Relationship).to receive(:pending_for).with(uid).and_return(relationship)
+        allow(relationship).to receive(:userdata).and_raise(Enmeshed::ConnectorError, 'Could not parse userdata in the response items')
+      end
+
+      it_behaves_like 'a handled erroneous request', I18n.t('common.errors.generic')
     end
 
     context 'when the User cannot be saved' do
@@ -198,7 +204,6 @@ RSpec.describe 'Users::NBPWallet::Finalize' do
         before { allow(relationship).to receive(:reject!).and_raise(Faraday::ConnectionFailed) }
 
         it_behaves_like 'a handled erroneous request', I18n.t('common.errors.generic')
-        it_behaves_like 'a documented erroneous request', Faraday::ConnectionFailed
 
         it 'does not create a user' do
           expect { finalize_request }.not_to change(User, :count)
@@ -210,6 +215,13 @@ RSpec.describe 'Users::NBPWallet::Finalize' do
 
         it 'does not try to reject the Relationship again' do
           expect(relationship).to receive(:reject!).once
+          finalize_request
+        end
+
+        it 'passes the error reason to Sentry' do
+          expect(Sentry).to receive(:capture_exception) do |e|
+            expect(e).to be_a Faraday::ConnectionFailed
+          end
           finalize_request
         end
       end
