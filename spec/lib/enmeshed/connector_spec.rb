@@ -4,6 +4,11 @@ require 'rails_helper'
 
 RSpec.describe Enmeshed::Connector do
   let(:connector) { described_class }
+  let(:connector_api_url) { "#{Settings.dig(:omniauth, :nbp, :enmeshed, :connector_url)}/api/v2" }
+
+  before do
+    allow(User).to receive(:omniauth_providers).and_return([:nbp])
+  end
 
   describe '.parse_result' do
     let(:response) { Faraday::Response.new(body:) }
@@ -58,13 +63,9 @@ RSpec.describe Enmeshed::Connector do
     end
   end
 
-  describe '.init_conn' do
-    before do
-      allow(User).to receive(:omniauth_providers).and_return([:nbp])
-    end
-
+  describe '.connection' do
     it 'returns a Faraday connection' do
-      expect(connector.send(:init_conn)).to be_a(Faraday::Connection)
+      expect(connector.send(:connection)).to be_a(Faraday::Connection)
     end
 
     context 'when the config is invalid' do
@@ -73,8 +74,112 @@ RSpec.describe Enmeshed::Connector do
       end
 
       it 'raises an error' do
-        expect { connector.send(:init_conn) }.to raise_error(Enmeshed::ConnectorError)
+        expect { connector.send(:connection) }.to raise_error(Enmeshed::ConnectorError)
       end
+    end
+  end
+
+  describe '.enmeshed_address' do
+    subject(:enmeshed_address) { connector.enmeshed_address }
+
+    before do
+      stub_request(:get, "#{connector_api_url}/Account/IdentityInfo")
+        .to_return(body: file_fixture('enmeshed/get_enmeshed_address.json'))
+    end
+
+    it 'returns the parsed address' do
+      expect(enmeshed_address).to eq 'did:e:example.com:dids:checksum______________'
+    end
+  end
+
+  describe '.create_relationship_template' do
+    subject(:create_relationship_template) { connector.create_relationship_template(relationship_template) }
+
+    let(:relationship_template) { instance_double(Enmeshed::RelationshipTemplate) }
+
+    before do
+      stub_request(:post, "#{connector_api_url}/RelationshipTemplates/Own")
+        .to_return(body: file_fixture('enmeshed/relationship_template_created.json'))
+    end
+
+    it 'returns the truncated reference of the RelationshipTemplate' do
+      expect(create_relationship_template).to eq 'RelationshipTemplateExampleTruncatedReferenceA=='
+    end
+  end
+
+  describe '.pending_relationships' do
+    subject(:pending_relationships) { connector.pending_relationships }
+
+    before do
+      stub_request(:get, "#{connector_api_url}/Relationships?status=Pending")
+        .to_return(body: file_fixture('enmeshed/valid_relationship_created.json'))
+    end
+
+    it 'returns a parsed relationship' do
+      expect(pending_relationships.first).to be_an Enmeshed::Relationship
+    end
+  end
+
+  describe '.accept_relationship' do
+    subject(:accept_relationship) { connector.accept_relationship(relationship_id) }
+
+    let(:relationship_id) { 'RELoi9IL4adMbj92K8dn' }
+    let(:accept_request_stub) { stub_request(:put, "#{connector_api_url}/Relationships/#{relationship_id}/Accept") }
+
+    context 'with a successful response' do
+      before do
+        accept_request_stub
+      end
+
+      it 'is true' do
+        expect(accept_relationship).to be_truthy
+      end
+    end
+
+    context 'with a failed response' do
+      before do
+        accept_request_stub.to_return(status: 404)
+      end
+
+      it 'is false' do
+        expect(accept_relationship).to be false
+      end
+    end
+  end
+
+  describe '.reject_relationship' do
+    subject(:reject_relationship) { connector.reject_relationship(relationship_id) }
+
+    let(:reject_request_stub) { stub_request(:put, "#{connector_api_url}/Relationships/#{relationship_id}/Reject") }
+
+    let(:relationship_id) { 'RELoi9IL4adMbj92K8dn' }
+
+    context 'with a successful response' do
+      before do
+        reject_request_stub
+      end
+
+      it 'is true' do
+        expect(reject_relationship).to be_truthy
+      end
+    end
+
+    context 'with a failed response' do
+      before do
+        reject_request_stub.to_return(status: 404)
+      end
+
+      it 'is false' do
+        expect(reject_relationship).to be false
+      end
+    end
+  end
+
+  context 'when the connector is down' do
+    before { stub_request(:get, "#{connector_api_url}/Relationships?status=Pending").and_timeout }
+
+    it 'raises an error' do
+      expect { connector.pending_relationships }.to raise_error(Faraday::ConnectionFailed)
     end
   end
 end

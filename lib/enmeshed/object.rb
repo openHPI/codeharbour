@@ -4,20 +4,28 @@ module Enmeshed
   class Object
     delegate :klass, to: :class
 
-    def self.parse(content)
-      validate! content
-    end
+    class << self
+      def parse(content)
+        validate! content
+      end
 
-    def self.klass
-      name&.demodulize
-    end
+      def klass
+        name&.demodulize
+      end
 
-    def self.schema
-      @schema ||= Connector::API_SCHEMA.schema(klass)
-    end
+      def schema
+        @schema ||= Connector::API_SCHEMA.schema(klass)
+      end
 
-    def self.validate!(instance)
-      raise ConnectorError.new("Invalid #{klass} schema") unless schema.valid?(instance)
+      def validate!(instance)
+        unless schema.valid?(instance)
+          error = schema.validate(instance).first.fetch('error')
+          Rails.logger.debug(error)
+          raise ConnectorError.new("Invalid #{klass} schema: #{error}") unless KNOWN_API_ISSUES.include? error
+        end
+      end
+
+      KNOWN_API_ISSUES = ['value at `/auditLog/0/createdBy` does not match format: date-time'].freeze
     end
   end
 end

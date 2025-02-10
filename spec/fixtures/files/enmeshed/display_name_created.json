@@ -3,7 +3,7 @@
     "id": "ATT_id_of_a_new_name",
     "content": {
       "@type": "IdentityAttribute",
-      "owner": "id1JttmYYvjT6wojkJ9rpaFkMUKHAWKr9RDf",
+      "owner": "did:e:example.com:dids:checksum______________",
       "value": {
         "@type": "DisplayName",
         "value": "CodeHarbor"

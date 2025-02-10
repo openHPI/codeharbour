@@ -7,11 +7,11 @@ module Users
     skip_after_action :verify_authorized
 
     def connect
-      if Enmeshed::Relationship.pending_for_nbp_uid(@provider_uid).present?
+      if Enmeshed::Relationship.pending_for(@provider_uid).present?
         redirect_to nbp_wallet_finalize_users_path and return
       end
 
-      @template = Enmeshed::RelationshipTemplate.create!(nbp_uid: @provider_uid)
+      @relationship_template = Enmeshed::RelationshipTemplate.create!(nbp_uid: @provider_uid)
     rescue Enmeshed::ConnectorError, Faraday::Error => e
       Sentry.capture_exception(e)
       Rails.logger.debug { e }
@@ -24,7 +24,7 @@ module Users
     end
 
     def relationship_status
-      if Enmeshed::Relationship.pending_for_nbp_uid(@provider_uid).present?
+      if Enmeshed::Relationship.pending_for(@provider_uid).present?
         render json: {status: :ready}
       else
         render json: {status: :waiting}
@@ -36,8 +36,8 @@ module Users
     end
 
     def finalize
-      relationship = Enmeshed::Relationship.pending_for_nbp_uid(@provider_uid)
-      abort_and_refresh(relationship) and return if relationship.blank?
+      relationship = Enmeshed::Relationship.pending_for(@provider_uid)
+      return abort_and_refresh(relationship) if relationship.blank?
 
       accept_and_create_user(relationship)
     rescue Enmeshed::ConnectorError, Faraday::Error => e
@@ -48,13 +48,8 @@ module Users
 
     private
 
-    def accept_and_create_user(relationship) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
-      if relationship.userdata[:status_group].blank?
-        abort_and_refresh(
-          relationship,
-          t('common.errors.model_not_created', model: User.model_name.human, errors: t('users.nbp_wallet.unrecognized_role'))
-        ) and return
-      end
+    def accept_and_create_user(relationship) # rubocop:disable Metrics/AbcSize
+      return unless user_data_valid?(relationship)
 
       user = User.new_from_omniauth(relationship.userdata, 'nbp', @provider_uid)
       user.identities << UserIdentity.new(omniauth_provider: 'enmeshed', provider_uid: relationship.peer)
@@ -87,6 +82,25 @@ module Users
       Rails.logger.debug { e }
     ensure
       redirect_to nbp_wallet_connect_users_path, alert: reason
+    end
+
+    def user_data_valid?(relationship)
+      # Enmeshed::Relationship checks for the presence of all the requested attributes first and later parses the
+      # provided status group. If it is not a synonym of the valid ones, the attribute is cleared so that a fitting
+      # alert can be passed on to the user here.
+      if relationship.userdata[:status_group].blank?
+        abort_and_refresh(relationship, t('common.errors.model_not_created', model: User.model_name.human,
+          errors: t('users.nbp_wallet.unrecognized_role'))) and return false
+      end
+
+      true
+    rescue Enmeshed::ConnectorError => e
+      # If the error is due to missing attributes, pass on the error message to the user.
+      if e.message.include?('must not be empty')
+        abort_and_refresh(relationship, e.message) and return false
+      else
+        abort_and_refresh(relationship) and return false
+      end
     end
 
     def require_user!

@@ -19,7 +19,7 @@ module Enmeshed
       super
 
       attribute_type = content.dig(:content, :@type)
-      desired_klass = descendants&.find {|descendant| descendant.klass == attribute_type }
+      desired_klass = descendants.find {|descendant| descendant.klass == attribute_type }
       raise ConnectorError.new("Unknown attribute type: #{attribute_type}") unless desired_klass
 
       attributes = {
@@ -32,6 +32,10 @@ module Enmeshed
       desired_klass.new(**attributes.compact)
     end
 
+    # Serialize all available attributes of an Attribute object.
+    # E.g. for sharing it when making the API request to create a relationship template.
+    #
+    # @return [Hash]
     def to_h
       default_attributes.deep_merge(additional_attributes)
     end

@@ -5,19 +5,20 @@
       "template": {
         "id": "RLT_example_id_ABCXY",
         "isOwn": true,
-        "createdBy": "id1JttmYYvjT6wojkJ9rpaFkMUKHAWKr9RDf",
+        "createdBy": "did:e:example.com:dids:checksum______________",
         "createdByDevice": "DVCiZvbvF6dg7cr1nwLw",
         "createdAt": "2024-04-29T13:59:42.688Z",
         "content": {
-          "metadata": {"nbp_uid": "example_uid"},
           "@type": "RelationshipTemplateContent",
+          "metadata": { "nbp_uid": "example_uid" },
           "onNewRelationship": {
+            "expiresAt": "2024-11-07T23:36:43.893Z",
             "items": [
               {
                 "@type": "ShareAttributeRequestItem",
                 "attribute": {
                   "@type": "IdentityAttribute",
-                  "owner": "id1JttmYYvjT6wojkJ9rpaFkMUKHAWKr9RDf",
+                  "owner": "did:e:example.com:dids:checksum______________",
                   "value": {
                     "@type": "DisplayName",
                     "value": "CodeHarbor"
@@ -63,92 +64,81 @@
         },
         "expiresAt": "2077-04-29T14:01:42.580Z",
         "maxNumberOfAllocations": 1,
-        "secretKey": "eyJrZXkiOiJBRWxfNURfaWNZeFRZank1UDVXUmJSTUliMkNaYWxuOUZrcDRPSGF4XzNRIiwiYWxnIjozfQ",
         "truncatedReference": "UkxUNzJ5UXN0NFA1U1VqM0lyOUN8M3xBRWxfNURfaWNZeFRZank1UDVXUmJSTUliMkNaYWxuOUZrcDRPSGF4XzNR"
       },
       "status": "Pending",
-      "peer": "id1EvvJ68x6wdHBwYrFTR31XtALHko9fnbyp",
-      "peerIdentity": {
-        "address": "id1EvvJ68x6wdHBwYrFTR31XtALHko9fnbyp",
-        "publicKey": "eyJwdWIiOiJQak9PTm1VRnJ1UFp1WVFQZWZNcnh1WU1qMzZpc1ptazhaWjU0WE1VbGNnIiwiYWxnIjozfQ",
-        "realm": "id1"
-      },
-      "changes": [
-        {
-          "id": "RCHNFJ9JD2LayPxn79nO",
-          "request": {
-            "createdBy": "id1EvvJ68x6wdHBwYrFTR31XtALHko9fnbyp",
-            "createdByDevice": "DVCwmoDGUfJfiUbQDIPw",
-            "createdAt": "2024-04-29T14:00:07.422Z",
-            "content": {
-              "@type": "RelationshipCreationChangeRequestContent",
-              "response": {
-                "items": [
-                  {
-                    "@type": "ShareAttributeAcceptResponseItem",
-                    "attributeId": "ATTQYtyzn5FyFJVmNPRg",
-                    "result": "Accepted"
-                  },
-                  {
-                    "@type": "ReadAttributeAcceptResponseItem",
-                    "attribute": {
-                      "@type": "IdentityAttribute",
-                      "owner": "id1EvvJ68x6wdHBwYrFTR31XtALHko9fnbyp",
-                      "value": {
-                        "@type": "GivenName",
-                        "value": "john"
-                      }
-                    },
-                    "attributeId": "ATTUU918qK6EvDoMdRKD",
-                    "result": "Accepted"
-                  },
-                  {
-                    "@type": "ReadAttributeAcceptResponseItem",
-                    "attribute": {
-                      "@type": "IdentityAttribute",
-                      "owner": "id1EvvJ68x6wdHBwYrFTR31XtALHko9fnbyp",
-                      "value": {
-                        "@type": "Surname",
-                        "value": "oliver"
-                      }
-                    },
-                    "attributeId": "ATTcFPnu5rNypgD3mO2y",
-                    "result": "Accepted"
-                  },
-                  {
-                    "@type": "ReadAttributeAcceptResponseItem",
-                    "attribute": {
-                      "@type": "IdentityAttribute",
-                      "owner": "id1EvvJ68x6wdHBwYrFTR31XtALHko9fnbyp",
-                      "value": {
-                        "@type": "EMailAddress",
-                        "value": "john.oliver@example103.org"
-                      }
-                    },
-                    "attributeId": "ATTqt42iyqAgHlSuv5yc",
-                    "result": "Accepted"
-                  },
-                  {
-                    "@type": "ReadAttributeAcceptResponseItem",
-                    "attribute": {
-                      "@type": "IdentityAttribute",
-                      "owner": "id1EvvJ68x6wdHBwYrFTR31XtALHko9fnbyp",
-                      "value": {
-                        "@type": "AffiliationRole",
-                        "value": "Lehrer:in"
-                      }
-                    },
-                    "attributeId": "ATTiPFc0dzMTzh5BAdT5",
-                    "result": "Accepted"
-                  }
-                ],
-                "requestId": "REQP9vbygJYzNSwE4qnu",
-                "result": "Accepted"
-              }
+      "creationContent": {
+        "@type": "RelationshipCreationContent",
+        "response": {
+          "result": "Accepted",
+          "requestId": "REQ_________________",
+          "items": [
+            {
+              "@type": "ShareAttributeAcceptResponseItem",
+              "attributeId": "ATT_________________",
+              "result": "Accepted"
+            },
+            {
+              "@type": "ReadAttributeAcceptResponseItem",
+              "attribute": {
+                "@type": "IdentityAttribute",
+                "owner": "did:e:example.com:dids:checksum______________",
+                "value": { "@type": "GivenName", "value": "John" }
+              },
+              "attributeId": "ATT_________________",
+              "result": "Accepted"
+            },
+            {
+              "@type": "ReadAttributeAcceptResponseItem",
+              "attribute": {
+                "@type": "IdentityAttribute",
+                "owner": "did:e:example.com:dids:checksum______________",
+                "value": { "@type": "Surname", "value": "Oliver" }
+              },
+              "attributeId": "ATT_________________",
+              "result": "Accepted"
+            },
+            {
+              "@type": "ReadAttributeAcceptResponseItem",
+              "attribute": {
+                "@type": "IdentityAttribute",
+                "owner": "did:e:example.com:dids:checksum______________",
+                "value": {
+                  "@type": "EMailAddress",
+                  "value": "john.oliver@example103.org"
+                }
+              },
+              "attributeId": "ATT_________________",
+              "result": "Accepted"
+            },
+            {
+              "@type": "ReadAttributeAcceptResponseItem",
+              "attribute": {
+                "@type": "IdentityAttribute",
+                "owner": "did:e:example.com:dids:checksum______________",
+                "value": {
+                  "@type": "AffiliationRole",
+                  "value": "Lehrer:in"
+                }
+              },
+              "attributeId": "ATT_________________",
+              "result": "Accepted"
             }
-          },
-          "status": "Pending",
-          "type": "Creation"
+          ]
+        }
+      },
+      "peer": "did:e:example.com:dids:checksum______________",
+      "peerIdentity": {
+        "address": "did:e:example.com:dids:checksum______________",
+        "publicKey": "eyJwdWIiOiJwdG5GRVZKd245VEtzR2k4V05CWlU0b1FFNk0zR3BFeF9QeVJKcHBWVW5vIiwiYWxnIjozfQ"
+      },
+      "auditLog": [
+        {
+          "createdAt": "2024-11-05T11:13:12.266Z",
+          "createdBy": "did:e:example.com:dids:checksum______________",
+          "createdByDevice": "DVC_________________",
+          "reason": "Creation",
+          "oldStatus": "Pending"
         }
       ]
     }
