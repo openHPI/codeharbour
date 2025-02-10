@@ -24,7 +24,7 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
   end
 
   describe '#execute' do
-    subject(:convert_to_task_service) { described_class.call(proforma_task:, user:, task:) }
+    subject(:convert_to_task_service) { described_class.call(proforma_task:, user:, task:).reload }
 
     let(:proforma_task) do
       ProformaXML::Task.new(
@@ -237,8 +237,9 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
         end
 
         it 'creates files with correct attributes' do
-          expect(convert_to_task_service.tests[1].files[0]).to have_attributes(convert_to_task_service.tests[0].files[0].attributes.merge('xml_id' => 'id-2'))
-          expect(convert_to_task_service.tests[2].files[0]).to have_attributes(convert_to_task_service.tests[0].files[0].attributes.merge('xml_id' => 'id-3'))
+          attribute_exceptions = %w[id created_at fileable_id updated_at]
+          expect(convert_to_task_service.tests[1].files[0]).to have_attributes(convert_to_task_service.tests[0].files[0].attributes.except(*attribute_exceptions).merge('xml_id' => 'id-2'))
+          expect(convert_to_task_service.tests[2].files[0]).to have_attributes(convert_to_task_service.tests[0].files[0].attributes.except(*attribute_exceptions).merge('xml_id' => 'id-3'))
         end
 
         it 'creates separate copies of referenced file' do
@@ -321,10 +322,12 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
           internal_description: 'internal_description',
           test_type: 'test_type',
           files: test_files,
-          meta_data: test_meta_data
+          meta_data: test_meta_data,
+          configuration:
         )
       end
 
+      let(:configuration) {}
       let(:test_meta_data) {}
       let(:test_files) { [test_file] }
       let(:test_file) do
@@ -402,7 +405,7 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
       end
 
       context 'when test has custom configuration' do
-        let(:test) { build(:test, :with_unittest) }
+        let(:configuration) { attributes_for(:test, :with_unittest)[:configuration] }
 
         it 'creates a test with the supplied test configuration' do
           expect(convert_to_task_service.tests.first).to have_attributes(configuration: test.configuration)
@@ -410,7 +413,7 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
       end
 
       context 'when test has multiple custom configuration' do
-        let(:test) { build(:test, :with_multiple_custom_configurations) }
+        let(:configuration) { attributes_for(:test, :with_multiple_custom_configurations)[:configuration] }
 
         it 'creates a test with the supplied test configurations' do
           expect(convert_to_task_service.tests.first).to have_attributes(configuration: test.configuration)
@@ -420,7 +423,11 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
       context 'when proforma_task has multiple tests' do
         let(:tests) { [test, test2] }
         let(:test2) do
-          ProformaXML::Test.new(files: test_files2)
+          ProformaXML::Test.new(
+            id: 'test_file_id',
+            title: 'wild-title',
+            files: test_files2
+          )
         end
         let(:test_files2) { [test_file2] }
         let(:test_file2) do
@@ -473,6 +480,7 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
       let(:task) do
         create(
           :task,
+          user:,
           title: 'task-title',
           description: 'task-description',
           internal_description: 'task-internal_description'
@@ -579,7 +587,7 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
 
     context 'when proforma_task has been exported from task' do
       let(:proforma_task) { ProformaService::ConvertTaskToProformaTask.call(task:) }
-      let(:task) { create(:task, files: task_files, tests:, model_solutions:, title: 'title') }
+      let!(:task) { create(:task, user:, files: task_files, tests:, model_solutions:, title: 'title') }
       let(:task_files) { build_list(:task_file, 1, :exportable, internal_description: 'original task file') }
       let(:tests) { build_list(:test, 1, files: test_files) }
       let(:test_files) { build_list(:task_file, 1, :exportable, internal_description: 'original test file') }
@@ -596,87 +604,103 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
           ))),
           model_solutions: have(1).item.and(include(have_attributes(
             id: model_solutions.first.id,
-            files: include(have_attributes(id: model_solutions.first.files.first.id))
+            files: have(1).item.and(include(have_attributes(id: model_solutions.first.files.first.id)))
           ))),
           tests: have(1).item.and(include(have_attributes(
             id: tests.first.id,
-            files: include(have_attributes(id: tests.first.files.first.id))
+            files: have(1).item.and(include(have_attributes(id: tests.first.files.first.id)))
+          )))
+        )
+      end
+
+      it 'does not update updated_at of unchanged files' do
+        task_file_updated_at = task_files.first.updated_at
+        test_file_updated_at = test_files.first.updated_at
+        ms_file_update_at = model_solution_files.first.updated_at
+
+        expect(convert_to_task_service).to have_attributes(
+          files: have(1).item.and(include(have_attributes(
+            updated_at: task_file_updated_at
+          ))),
+          model_solutions: have(1).item.and(include(have_attributes(
+            files: have(1).item.and(include(have_attributes(updated_at: ms_file_update_at)))
+          ))),
+          tests: have(1).item.and(include(have_attributes(
+            id: tests.first.id,
+            files: have(1).item.and(include(have_attributes(updated_at: test_file_updated_at)))
           )))
         )
       end
 
       context 'when files have been deleted' do
         context 'when task files have been deleted' do
-          before { task.files = [] }
+          before { proforma_task.files = [] }
 
           it 'imports task files correctly' do
             expect(convert_to_task_service.files).to be_empty
           end
 
           it 'saves the task correctly' do
-            convert_to_task_service.save
-            task.reload
-            expect(task.files).to be_empty
+            convert_to_task_service
+            expect(task.reload.files).to be_empty
           end
         end
 
         context 'when test files have been deleted' do
-          before { task.tests.first.files = [] }
+          before { proforma_task.tests.first.files = [] }
 
           it 'imports test files correctly' do
             expect(convert_to_task_service.tests.first.files).to be_empty
           end
 
           it 'saves the task correctly' do
-            convert_to_task_service.save
-            task.reload
+            convert_to_task_service
             expect(task.tests.first.files).to be_empty
           end
         end
 
         context 'when model solution files have been deleted' do
-          before { task.model_solutions.first.files = [] }
+          before { proforma_task.model_solutions.first.files = [] }
 
           it 'imports model solution files correctly' do
             expect(convert_to_task_service.model_solutions.first.files).to be_empty
           end
 
           it 'saves the task correctly' do
-            convert_to_task_service.save
-            task.reload
+            convert_to_task_service
             expect(task.model_solutions.first.files).to be_empty
           end
         end
       end
 
-      context 'when files have been move around' do
+      context 'when files have been moved around' do
         before do
           task_file = proforma_task.files.first
           test_file = proforma_task.tests.first.files.first
           model_solution_file = proforma_task.model_solutions.first.files.first
-          proforma_task.files = [model_solution_file]
-          proforma_task.tests.first.files = [task_file]
-          proforma_task.model_solutions.first.files = [test_file]
+          proforma_task.files = [test_file]
+          proforma_task.tests = [ProformaXML::Test.new(title: 'replacement Test', id: 987_654_325, files: [model_solution_file])]
+          proforma_task.model_solutions.first.files = [task_file]
         end
 
         it 'imports taskfiles correctly' do
           expect(convert_to_task_service.files.first).to have_attributes(
-            id: model_solution_files.first.id,
-            internal_description: model_solution_files.first.internal_description
+            id: test_files.first.id,
+            internal_description: test_files.first.internal_description
           )
         end
 
         it 'imports testfiles correctly' do
           expect(convert_to_task_service.tests.first.files.first).to have_attributes(
-            id: task_files.first.id,
-            internal_description: task_files.first.internal_description
+            id: model_solution_files.first.id,
+            internal_description: model_solution_files.first.internal_description
           )
         end
 
         it 'imports msfiles correctly' do
           expect(convert_to_task_service.model_solutions.first.files.first).to have_attributes(
-            id: test_files.first.id,
-            internal_description: test_files.first.internal_description
+            id: task_files.first.id,
+            internal_description: task_files.first.internal_description
           )
         end
 
@@ -684,43 +708,43 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
           expect(convert_to_task_service).to have_attributes(
             id: task.id,
             files: have(1).item.and(include(have_attributes(
-                                              id: model_solution_files.first.id
-                                            ))),
+              id: test_files.first.id
+            ))),
             model_solutions: have(1).item.and(include(have_attributes(
               id: model_solutions.first.id,
-              files: include(have_attributes(id: test_files.first.id))
+              files: have(1).item.and(include(have_attributes(id: task_files.first.id)))
             ))),
             tests: have(1).item.and(include(have_attributes(
-              id: tests.first.id,
-              files: include(have_attributes(id: task_files.first.id))
+              xml_id: '987654325',
+              files: have(1).item.and(include(have_attributes(id: model_solution_files.first.id)))
             )))
           )
         end
 
         context 'when imported task is persisted' do
           before do
-            convert_to_task_service.save
+            convert_to_task_service.save!
             task.reload
           end
 
           it 'imports taskfiles correctly' do
             expect(task.files.first).to have_attributes(
-              id: model_solution_files.first.id,
-              internal_description: model_solution_files.first.internal_description
+              id: test_files.first.id,
+              internal_description: test_files.first.internal_description
             )
           end
 
           it 'imports testfiles correctly' do
             expect(task.tests.first.files.first).to have_attributes(
-              id: task_files.first.id,
-              internal_description: task_files.first.internal_description
+              id: model_solution_files.first.id,
+              internal_description: model_solution_files.first.internal_description
             )
           end
 
           it 'imports msfiles correctly' do
             expect(task.model_solutions.first.files.first).to have_attributes(
-              id: test_files.first.id,
-              internal_description: test_files.first.internal_description
+              id: task_files.first.id,
+              internal_description: task_files.first.internal_description
             )
           end
 
@@ -728,15 +752,15 @@ RSpec.describe ProformaService::ConvertProformaTaskToTask do
             expect(task).to have_attributes(
               id: task.id,
               files: have(1).item.and(include(have_attributes(
-                                                id: model_solution_files.first.id
-                                              ))),
+                id: test_files.first.id
+              ))),
               model_solutions: have(1).item.and(include(have_attributes(
                 id: model_solutions.first.id,
-                files: include(have_attributes(id: test_files.first.id))
+                files: have(1).item.and(include(have_attributes(id: task_files.first.id)))
               ))),
               tests: have(1).item.and(include(have_attributes(
-                id: tests.first.id,
-                files: include(have_attributes(id: task_files.first.id))
+                xml_id: '987654325',
+                files: have(1).item.and(include(have_attributes(id: model_solution_files.first.id)))
               )))
             )
           end

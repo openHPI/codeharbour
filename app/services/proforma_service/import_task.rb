@@ -9,10 +9,7 @@ module ProformaService
     end
 
     def execute
-      task = ConvertProformaTaskToTask.call(proforma_task: @proforma_task, user: @user, task: base_task)
-      Pundit.authorize @user, task, :create?
-      task.save!
-      task
+      ConvertProformaTaskToTask.call(proforma_task: @proforma_task, user: @user, task: base_task)
     end
 
     private

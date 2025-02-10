@@ -53,6 +53,7 @@ RSpec.describe ProformaService::Import do
     before do
       zip_file.write(exporter)
       zip_file.rewind
+      task.reload
     end
 
     it { is_expected.to be_an_equal_task_as task }
@@ -75,7 +76,7 @@ RSpec.describe ProformaService::Import do
       it { is_expected.to be_valid }
 
       it 'sets the correct user as owner of the task' do
-        expect(imported_task.user).to be user
+        expect(imported_task.user).to eq user
       end
 
       it 'sets the uuid' do
@@ -198,6 +199,8 @@ RSpec.describe ProformaService::Import do
           tests: [],
           user:)
       end
+
+      before { task2.reload }
 
       it 'imports the tasks from zip containing multiple zips' do
         expect(imported_task).to all be_an(Task)

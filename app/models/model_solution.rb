@@ -5,7 +5,7 @@ class ModelSolution < ApplicationRecord
   include TransferValues
   include ParentValidation
 
-  belongs_to :task, autosave: true, inverse_of: :model_solutions
+  belongs_to :task, inverse_of: :model_solutions
   belongs_to :parent, class_name: 'ModelSolution', optional: true
   has_many :files, as: :fileable, class_name: 'TaskFile', dependent: :destroy
   accepts_nested_attributes_for :files, allow_destroy: true

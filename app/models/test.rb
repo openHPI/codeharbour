@@ -5,7 +5,7 @@ class Test < ApplicationRecord
   include TransferValues
   include ParentValidation
 
-  belongs_to :task, autosave: true, inverse_of: :tests
+  belongs_to :task, inverse_of: :tests
   belongs_to :testing_framework, optional: true
   belongs_to :parent, class_name: 'Test', optional: true
   validates :title, presence: true

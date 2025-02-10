@@ -7,12 +7,13 @@ module ProformaService
       @proforma_task = proforma_task
       @user = user
       @task = task || Task.new
-      @all_files = @task.all_files
       @file_xml_ids = []
     end
 
     def execute
-      import_task
+      ActiveRecord::Base.transaction do
+        import_task
+      end
       @task
     end
 
@@ -32,13 +33,51 @@ module ProformaService
 
         submission_restrictions: @proforma_task.submission_restrictions,
         external_resources: @proforma_task.external_resources,
-        grading_hints: @proforma_task.grading_hints,
-
-        tests:,
-        model_solutions:
+        grading_hints: @proforma_task.grading_hints
       )
+      Pundit.authorize @user, @task, :create?
+
+      @task.save!
+
+      manage_objects
+    end
+
+    def manage_objects
+      # delete files that do not exist in imported task
+      unreferenced_files.each(&:destroy)
+      @task.reload
+      # Move only relocated files to the task, avoiding updates to the updated_at of untouched files.
+      move_relocated_files_to_task
+      set_tests
+      set_model_solutions
+
+      @task.reload
       upsert_files @proforma_task, @task
-      delete_removed_files
+      delete_removed_objects
+      @task.save!
+    end
+
+    def move_relocated_files_to_task
+      @task.files = @task.all_files(cached: false).filter do |file|
+        # Move files to the task if they belong directly to it or if the parent's xml_id differs from the current parent's xml_id.
+        parent_id(file.xml_id) == 'task' || (file.fileable.respond_to?(:xml_id) && file.fileable.xml_id) != parent_id(file.xml_id)
+      end
+    end
+
+    def parent_id(xml_id)
+      [@proforma_task, *@proforma_task.model_solutions, *@proforma_task.tests].find do |object|
+        object.files.any? {|file| file.id == xml_id }
+      end.then {|object| object.respond_to?(:id) ? object.id : 'task' }
+    end
+
+    def all_proforma_files
+      [@proforma_task.files + @proforma_task.tests.map(&:files) + @proforma_task.model_solutions.map(&:files)].flatten
+    end
+
+    def unreferenced_files
+      @task.all_files.reject do |f|
+        all_proforma_files.map {|pf| pf.id.to_s }.include?(f.xml_id)
+      end
     end
 
     def parent_uuid
@@ -62,7 +101,7 @@ module ProformaService
     end
 
     def upsert_file_from_proforma_file(proforma_task_file, fileable)
-      task_file = ch_record_for(@all_files, proforma_task_file.id) || TaskFile.new
+      task_file = (@file_xml_ids.exclude?(proforma_task_file.id) && ch_record_for(@task.all_files, proforma_task_file.id)) || TaskFile.new
       task_file.assign_attributes(file_attributes(proforma_task_file, fileable))
       attach_file_content(proforma_task_file, task_file)
       task_file
@@ -105,9 +144,10 @@ module ProformaService
       }
     end
 
-    def tests
-      @proforma_task.tests.map do |test|
-        ch_test = ch_record_for(@task.tests, test.id) || Test.new(xml_id: test.id)
+    def set_tests
+      @proforma_task.tests.each do |test|
+        ch_test = find_or_initialize_ch_test test
+        ch_test.task = @task
         upsert_files test, ch_test
         ch_test.assign_attributes(
           title: test.title,
@@ -117,12 +157,12 @@ module ProformaService
           meta_data: test.meta_data,
           configuration: test.configuration
         )
-        ch_test
+        ch_test.save!
       end
     end
 
-    def object_files(object)
-      object.files.map {|file| files.delete(file.id) }
+    def find_or_initialize_ch_test(test)
+      ch_record_for(@task.tests, test.id) || Test.new(xml_id: test.id)
     end
 
     def programming_language # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
@@ -136,15 +176,16 @@ module ProformaService
       end
     end
 
-    def model_solutions
-      @proforma_task.model_solutions.map do |model_solution|
+    def set_model_solutions
+      @proforma_task.model_solutions.each do |model_solution|
         ch_model_solution = ch_record_for(@task.model_solutions, model_solution.id) || ModelSolution.new(xml_id: model_solution.id)
+        ch_model_solution.task = @task
         upsert_files model_solution, ch_model_solution
         ch_model_solution.assign_attributes(
           description: model_solution.description,
           internal_description: model_solution.internal_description
         )
-        ch_model_solution
+        ch_model_solution.save!
       end
     end
 
@@ -152,8 +193,19 @@ module ProformaService
       collection.select {|record| record.xml_id == xml_id }&.first
     end
 
-    def delete_removed_files
-      @all_files.reject {|file| @file_xml_ids.include? file.xml_id }.each(&:destroy)
+    def delete_removed_objects
+      delete_removed_tests
+      delete_removed_model_solutions
+    end
+
+    def delete_removed_tests
+      remaining_test_ids = @proforma_task.tests.map {|t| t.id.to_s }
+      @task.tests.reject {|test| remaining_test_ids.include? test.xml_id }.each(&:destroy)
+    end
+
+    def delete_removed_model_solutions
+      remaining_model_solution_ids = @proforma_task.model_solutions.map {|ms| ms.id.to_s }
+      @task.model_solutions.reject {|model_solution| remaining_model_solution_ids.include? model_solution.xml_id }.each(&:destroy)
     end
   end
 end

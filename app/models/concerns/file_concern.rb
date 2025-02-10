@@ -4,7 +4,7 @@ module FileConcern
   extend ActiveSupport::Concern
 
   included do
-    has_many :files, as: :fileable, class_name: 'TaskFile', dependent: :destroy, autosave: true, inverse_of: :fileable
+    has_many :files, as: :fileable, class_name: 'TaskFile', dependent: :destroy, inverse_of: :fileable
     accepts_nested_attributes_for :files, allow_destroy: true
   end
 
