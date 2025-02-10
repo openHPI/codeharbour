@@ -12,11 +12,7 @@ class ModelSolution < ApplicationRecord
   validates :xml_id, presence: true
   validates :parent_id, uniqueness: {scope: :task}, if: -> { parent_id.present? }
   validate :parent_validation_check
-  # TODO: For new tasks, this validation is currently useless, because the validation is performed
-  # before the task is saved (and thus the task_id is not yet known, i.e., is NULL). Therefore,
-  # one can create a **new task** with a test that has the same xml_id as another test of the same task.
-  # TODO: This validation is currently useless on new records, because the uuid is generated after validation
-  validates :xml_id, uniqueness: {scope: :task_id}
+  validate :unique_xml_id, if: -> { !task.nil? && xml_id_changed? }
 
   def duplicate(set_parent_id: true)
     dup.tap do |model_solution|
@@ -25,5 +21,12 @@ class ModelSolution < ApplicationRecord
         model_solution.parent_id = id
       end
     end
+  end
+
+  private
+
+  def unique_xml_id
+    xml_ids = (task.model_solutions - [self]).map(&:xml_id)
+    errors.add(:xml_id, :not_unique) if xml_ids.include? xml_id
   end
 end

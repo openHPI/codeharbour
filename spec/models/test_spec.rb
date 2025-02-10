@@ -7,7 +7,17 @@ RSpec.describe Test do
     it { is_expected.to belong_to(:task) }
     it { is_expected.to validate_presence_of(:title) }
     it { is_expected.to validate_presence_of(:xml_id) }
-    it { is_expected.to validate_uniqueness_of(:xml_id).scoped_to(:task_id) }
+
+    context 'when a task is created with multiple tests' do
+      before { build(:task, tests: [test, build(:test, xml_id: 'same')]) }
+
+      let(:test) { build(:test, xml_id: 'same') }
+
+      it 'validates xml_id correctly' do
+        test.validate
+        expect(test.errors.full_messages).to include "#{described_class.human_attribute_name('xml_id')} #{I18n.t('activerecord.errors.messages.not_unique')}"
+      end
+    end
 
     it_behaves_like 'parent validation with parent_id', :test
   end

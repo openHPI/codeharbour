@@ -18,7 +18,7 @@ RSpec.describe TaskFile do
 
       it 'has correct error' do
         file.validate
-        expect(file.errors.full_messages).to include "#{described_class.human_attribute_name('xml_id')} #{I18n.t('activerecord.errors.models.task_file.attributes.xml_id.not_unique')}"
+        expect(file.errors.full_messages).to include "#{described_class.human_attribute_name('xml_id')} #{I18n.t('activerecord.errors.messages.not_unique')}"
       end
     end
 
@@ -96,7 +96,7 @@ RSpec.describe TaskFile do
 
       it 'has correct error' do
         file.validate
-        expect(file.errors.full_messages).to include "#{described_class.human_attribute_name('xml_id')} #{I18n.t('activerecord.errors.models.task_file.attributes.xml_id.not_unique')}"
+        expect(file.errors.full_messages).to include "#{described_class.human_attribute_name('xml_id')} #{I18n.t('activerecord.errors.messages.not_unique')}"
       end
     end
 
