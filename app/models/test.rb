@@ -12,10 +12,7 @@ class Test < ApplicationRecord
   validates :xml_id, presence: true
   validates :parent_id, uniqueness: {scope: :task}, if: -> { parent_id.present? }
   validate :parent_validation_check
-  # TODO: For new tasks, this validation is currently useless, because the validation is performed
-  # before the task is saved (and thus the task_id is not yet known, i.e., is NULL). Therefore,
-  # one can create a **new task** with a test that has the same xml_id as another test of the same task.
-  validates :xml_id, uniqueness: {scope: :task_id}
+  validate :unique_xml_id, if: -> { !task.nil? && xml_id_changed? }
 
   def configuration_as_xml
     Dachsfisch::JSON2XMLConverter.perform(json: configuration.to_json)
@@ -28,5 +25,12 @@ class Test < ApplicationRecord
         test.parent_id = id
       end
     end
+  end
+
+  private
+
+  def unique_xml_id
+    xml_ids = (task.tests - [self]).map(&:xml_id)
+    errors.add(:xml_id, :not_unique) if xml_ids.include? xml_id
   end
 end

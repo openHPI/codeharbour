@@ -6,7 +6,17 @@ RSpec.describe ModelSolution do
   describe 'validations' do
     it { is_expected.to belong_to(:task) }
     it { is_expected.to validate_presence_of(:xml_id) }
-    it { is_expected.to validate_uniqueness_of(:xml_id).scoped_to(:task_id) }
+
+    context 'when a task is created with multiple model_solutions' do
+      before { build(:task, model_solutions: [model_solution, build(:model_solution, xml_id: 'same')]) }
+
+      let(:model_solution) { build(:model_solution, xml_id: 'same') }
+
+      it 'validates xml_id correctly' do
+        model_solution.validate
+        expect(model_solution.errors.full_messages).to include "#{described_class.human_attribute_name('xml_id')} #{I18n.t('activerecord.errors.messages.not_unique')}"
+      end
+    end
 
     it_behaves_like 'parent validation with parent_id', :model_solution
   end

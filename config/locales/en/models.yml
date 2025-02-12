@@ -101,6 +101,8 @@ en:
         omniauth_provider: OmniAuth Provider
         provider_uid: Provider UID
     errors:
+      messages:
+        not_unique: is not unique
       models:
         collection:
           attributes:
@@ -120,10 +122,6 @@ en:
               not_iso639: is not a two letter ISO 639-1 or three letter ISO-639-2 language code
             task_contribution:
               duplicated: has been created already and is currently waiting for approval. Please edit your existing contribution instead of creating a new one
-        task_file:
-          attributes:
-            xml_id:
-              not_unique: is not unique
         user:
           attributes:
             avatar:

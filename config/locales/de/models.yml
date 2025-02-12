@@ -101,6 +101,8 @@ de:
         omniauth_provider: OmniAuth-Anbieter
         provider_uid: Anbieter-UID
     errors:
+      messages:
+        not_unique: is not unique
       models:
         collection:
           attributes:
@@ -120,10 +122,6 @@ de:
               not_iso639: ist kein zweistelliger ISO-639-1- oder dreistelliger ISO-639-2-Sprachcode
             task_contribution:
               duplicated: wurde bereits erzeugt und wartet auf Genehmigung. Bitte bearbeiten Sie Ihren vorhandenen Änderungsvorschlag, anstatt einen neuen anzulegen.
-        task_file:
-          attributes:
-            xml_id:
-              not_unique: ist nicht eindeutig
         user:
           attributes:
             avatar:
